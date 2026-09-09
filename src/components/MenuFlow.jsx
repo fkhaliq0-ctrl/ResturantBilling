@@ -1,0 +1,1 @@
+import React from "react"; export default function MenuFlow() { return (<div className="bg-white rounded-lg shadow p-4"><h2 className="text-xl font-bold mb-4 text-gray-800">Menu Flow</h2><p className="text-gray-600">Manage your restaurant menu categories and items here.</p></div>); }

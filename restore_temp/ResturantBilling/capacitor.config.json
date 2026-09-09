@@ -1,0 +1,10 @@
+{
+    "appId":  "com.mehfilenihari.mehfilenihari",
+    "appName":  "resturantbilling",
+    "webDir":  "dist",
+    "plugins":  {
+                    "CapacitorUpdater":  {
+                                             "appId":  "com.mehfilenihari.mehfilenihari"
+                                         }
+                }
+}
