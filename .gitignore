@@ -23,3 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 .aider*
+
+# Ignore large builds and backups
+release/
+backups/
+*.zip
+*.tar.gz
+*.rar
+*.apk
