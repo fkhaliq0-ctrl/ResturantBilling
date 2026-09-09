@@ -1,0 +1,53 @@
+{
+  "appId": "com.mehfil.nihari-pos",
+  "productName": "Mehfil-E-Nihari POS",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "electron-main.cjs",
+    "package.json",
+    "assets/**/*",
+    "installer.nsh"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "assets/mm.ico",
+    "artifactName": "Mehfil-E-Nihari-POS-${version}-Setup.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": false,
+    "createStartMenuShortcut": false,
+    "shortcutName": "Mehfil-E-Nihari POS",
+    "installerIcon": "assets/mm.ico",
+    "uninstallerIcon": "assets/mm.ico",
+    "installerHeaderIcon": "assets/mm.ico",
+    "include": "installer.nsh",
+    "license": "",
+    "artifactName": "Mehfil-E-Nihari-POS-${version}-Setup.${ext}"
+  },
+  "mac": {
+    "target": "dmg",
+    "icon": "assets/mm.ico"
+  },
+  "linux": {
+    "target": "AppImage",
+    "icon": "assets/mm.ico"
+  },
+  "compression": "maximum",
+  "asar": true,
+  "extraResources": [
+    {
+      "from": "assets/",
+      "to": "assets/"
+    }
+  ]
+}

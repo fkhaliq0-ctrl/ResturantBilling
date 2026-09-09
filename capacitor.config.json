@@ -1,0 +1,8 @@
+{
+    "appId":  "com.resturantbilling.app",
+    "webDir":  "dist",
+    "appName":  "Mehfil-E-Nihari",
+    "server":  {
+                   "cleartext":  true
+               }
+}

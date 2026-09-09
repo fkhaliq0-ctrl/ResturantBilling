@@ -1,0 +1,420 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import PinScreen from './components/PinScreen';
+import CategoryGrid from './components/CategoryGrid';
+import ItemGrid from './components/ItemGrid';
+import Cart from './components/Cart';
+import SuccessScreen from './components/SuccessScreen';
+import DailyReport from './components/DailyReport';
+import Settings from './components/Settings';
+import BillEditor from './components/BillEditor';
+import AuditLog from './components/AuditLog';
+import ClosingStock from './components/ClosingStock';
+import OwnerReport from './components/OwnerReport';
+import PurchaseEntry from './components/PurchaseEntry';
+import ExpenseReport from './components/ExpenseReport';
+import BackupRestore from './components/BackupRestore';
+import SyncConfig from './components/SyncConfig';
+import CADispatcher from './components/CADispatcher';
+import EODClosing from './components/EODClosing';
+import WhatsAppStatus from './components/WhatsAppStatus';
+import { CATEGORIES, DEFAULT_ITEMS } from './utils/menuData';
+import { saveMenuItems, getMenuItems, saveBill } from './utils/storage';
+import { playButtonPress, playCheckoutSuccess } from './utils/audio';
+import { logEdit, snapshotBill } from './utils/auditLog';
+
+export default function App() {
+  const [unlocked, setUnlocked] = useState(false);
+  const [screen, setScreen] = useState('categories');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [lastBill, setLastBill] = useState(null);
+  const [lastPayment, setLastPayment] = useState(null);
+  const [menuItems, setMenuItems] = useState([]);
+
+  // ── Active cart audit: snapshot when first item added ───────
+  const cartSnapshotRef = useRef(null);
+  const activeBillAuditRef = useRef([]);
+
+  // ── Initialize cloud sync on mount ─────────────────────────
+  useEffect(() => {
+    import('./utils/sync').then(({ initSync }) => {
+      initSync().catch(() => {});
+    });
+  }, []);
+
+  // Initialize menu items
+  useEffect(() => {
+    const initMenu = async () => {
+      let items = await getMenuItems();
+      if (!items || items.length === 0) {
+        await saveMenuItems(DEFAULT_ITEMS);
+        items = DEFAULT_ITEMS;
+      }
+      setMenuItems(items);
+    };
+    initMenu();
+  }, []);
+
+  const getItemsForCategory = useCallback(
+    (categoryId) => menuItems.filter((item) => item.category === categoryId),
+    [menuItems]
+  );
+
+  // ── Cart operations with audit logging ──────────────────────
+  const handleAddToCart = useCallback((item) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === item.id);
+      if (existing) {
+        return prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i));
+      }
+      return [...prev, { ...item, qty: 1 }];
+    });
+  }, []);
+
+  const handleUpdateQty = useCallback((itemId, qty) => {
+    setCart((prev) => {
+      const oldItem = prev.find((i) => i.id === itemId);
+      const newCart = prev.map((i) => (i.id === itemId ? { ...i, qty } : i)).filter((i) => i.qty > 0);
+
+      // Audit: log qty change
+      if (oldItem && qty > 0 && qty !== oldItem.qty) {
+        logEdit({
+          billId: 'active-cart',
+          action: 'item_qty_changed',
+          before: { ...oldItem, total: oldItem.price * oldItem.qty },
+          after: { ...oldItem, qty, price: oldItem.price, total: oldItem.price * qty },
+          details: `${oldItem.name} qty ${oldItem.qty} → ${qty}`,
+        });
+        activeBillAuditRef.current.push({ action: 'item_qty_changed', itemId, from: oldItem.qty, to: qty });
+      }
+      // Audit: log item removal via qty 0
+      if (oldItem && qty <= 0) {
+        logEdit({
+          billId: 'active-cart',
+          action: 'item_removed',
+          before: { ...oldItem, total: oldItem.price * oldItem.qty },
+          after: null,
+          details: `Removed ${oldItem.name} (${oldItem.portion || 'Fixed'}) × ${oldItem.qty}`,
+        });
+        activeBillAuditRef.current.push({ action: 'item_removed', itemId });
+      }
+
+      return newCart;
+    });
+  }, []);
+
+  const handleRemoveFromCart = useCallback((itemId) => {
+    setCart((prev) => {
+      const oldItem = prev.find((i) => i.id === itemId);
+      if (oldItem) {
+        logEdit({
+          billId: 'active-cart',
+          action: 'item_removed',
+          before: { ...oldItem, total: oldItem.price * oldItem.qty },
+          after: null,
+          details: `Removed ${oldItem.name} (${oldItem.portion || 'Fixed'}) × ${oldItem.qty}`,
+        });
+        activeBillAuditRef.current.push({ action: 'item_removed', itemId });
+      }
+      return prev.filter((i) => i.id !== itemId);
+    });
+  }, []);
+
+  const handleCheckout = useCallback(
+    async (method) => {
+      if (cart.length === 0) return;
+
+      const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const now = new Date();
+      const bill = {
+        items: [...cart],
+        total,
+        originalTotal: total,
+        paymentMethod: method,
+        date: now.toISOString().split('T')[0],
+        time: now.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }),
+        timestamp: now.toISOString(),
+      };
+
+      try {
+        const billId = await saveBill(bill);
+        bill.id = billId;
+      } catch {
+        bill.id = 'local-' + Date.now();
+      }
+
+      playCheckoutSuccess();
+      setLastBill(bill);
+      setLastPayment(method);
+      setScreen('success');
+      setCart([]);
+      setCartOpen(false);
+      cartSnapshotRef.current = null;
+      activeBillAuditRef.current = [];
+    },
+    [cart]
+  );
+
+  const handleNewBill = useCallback(() => {
+    playButtonPress();
+    setLastBill(null);
+    setLastPayment(null);
+    setScreen('categories');
+    setSelectedCategory(null);
+  }, []);
+
+  const handleSelectCategory = useCallback((catId) => {
+    playButtonPress();
+    setSelectedCategory(catId);
+    setScreen('items');
+  }, []);
+
+  const handleBackToCategories = useCallback(() => {
+    playButtonPress();
+    setScreen('categories');
+    setSelectedCategory(null);
+  }, []);
+
+  if (!unlocked) {
+    return <PinScreen onUnlock={() => setUnlocked(true)} />;
+  }
+
+  const categoryName = CATEGORIES.find((c) => c.id === selectedCategory)?.name || '';
+
+  return (
+    <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 to-slate-800">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/50 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">🍲</span>
+          <div>
+            <h1 className="text-xl font-bold text-white leading-tight">Mehfil-E-Nihari</h1>
+            <p className="text-amber-400/80 text-xs font-medium">
+              {new Date().toLocaleDateString('en-IN', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+              })}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              playButtonPress();
+              setScreen('report');
+            }}
+            className="w-11 h-11 rounded-xl bg-slate-700/60 flex items-center justify-center 
+              text-xl btn-press hover:bg-slate-600/60 transition-colors"
+            title="Sales Report"
+          >
+            📊
+          </button>
+          <button
+            onClick={() => {
+              playButtonPress();
+              setScreen('audit');
+            }}
+            className="w-11 h-11 rounded-xl bg-slate-700/60 flex items-center justify-center 
+              text-xl btn-press hover:bg-slate-600/60 transition-colors"
+            title="Audit Log"
+          >
+            📝
+          </button>
+          <button
+            onClick={() => {
+              playButtonPress();
+              setScreen('settings');
+            }}
+            className="w-11 h-11 rounded-xl bg-slate-700/60 flex items-center justify-center 
+              text-xl btn-press hover:bg-slate-600/60 transition-colors"
+            title="Settings"
+          >
+            ⚙️
+          </button>
+        </div>
+      </div>
+
+      {/* Main content + Cart sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4">
+          {screen === 'categories' && (
+            <CategoryGrid categories={CATEGORIES} onSelect={handleSelectCategory} />
+          )}
+
+          {screen === 'items' && selectedCategory && (
+            <div>
+              <div className="mb-2">
+                <h2 className="text-xl font-bold text-amber-400">
+                  {CATEGORIES.find((c) => c.id === selectedCategory)?.icon} {categoryName}
+                </h2>
+              </div>
+              <ItemGrid
+                items={getItemsForCategory(selectedCategory)}
+                onAdd={handleAddToCart}
+                onBack={handleBackToCategories}
+              />
+            </div>
+          )}
+
+          {screen === 'success' && lastBill && (
+            <SuccessScreen
+              bill={lastBill}
+              paymentMethod={lastPayment}
+              onNewBill={handleNewBill}
+              onViewReport={() => {
+                playButtonPress();
+                setScreen('report');
+              }}
+            />
+          )}
+
+          {screen === 'report' && (
+            <DailyReport
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+              onEditBill={(bill) => {
+                playButtonPress();
+                setScreen({ type: 'editor', bill });
+              }}
+            />
+          )}
+
+          {screen === 'audit' && (
+            <AuditLog
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'closing' && (
+            <ClosingStock
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'owner' && (
+            <OwnerReport
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'purchase' && (
+            <PurchaseEntry
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'expenses' && (
+            <ExpenseReport
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen.type === 'editor' && screen.bill && (
+            <BillEditor
+              bill={screen.bill}
+              onBack={() => {
+                playButtonPress();
+                setScreen('report');
+              }}
+              onSaved={(updatedBill) => {
+                playButtonPress();
+                setLastBill(updatedBill);
+                setScreen('report');
+              }}
+            />
+          )}
+
+          {screen === 'backup' && (
+            <BackupRestore
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'sync' && (
+            <SyncConfig
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'ca' && (
+            <CADispatcher
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'eod' && (
+            <EODClosing
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'whatsapp' && (
+            <WhatsAppStatus
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+            />
+          )}
+
+          {screen === 'settings' && (
+            <Settings
+              onBack={() => {
+                playButtonPress();
+                setScreen('categories');
+              }}
+              onNavigate={(s) => {
+                playButtonPress();
+                setScreen(s);
+              }}
+            />
+          )}
+        </div>
+
+        <Cart
+          cart={cart}
+          onUpdateQty={handleUpdateQty}
+          onRemove={handleRemoveFromCart}
+          onCheckout={handleCheckout}
+          isOpen={cartOpen}
+          onToggle={() => setCartOpen((prev) => !prev)}
+        />
+      </div>
+    </div>
+  );
+}

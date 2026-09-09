@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">resturantbilling</string>
+    <string name="title_activity_main">resturantbilling</string>
+    <string name="package_name">com.restaurant.billing</string>
+    <string name="custom_url_scheme">com.restaurant.billing</string>
+</resources>

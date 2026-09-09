@@ -1,0 +1,18 @@
+{
+    "inventory":  "Inventory Master",
+    "item_name":  "Item Name",
+    "menu_master":  "Menu Master",
+    "cancel":  "Cancel",
+    "price":  "Price",
+    "expenses":  "Expense Master",
+    "category":  "Category",
+    "reports":  "Reports",
+    "delete":  "Delete",
+    "save":  "Save",
+    "stock":  "Stock Quantity",
+    "staff_master":  "Staff Master",
+    "sales":  "Sales \u0026 Billing",
+    "settings":  "Settings",
+    "dashboard":  "Dashboard",
+    "edit":  "Edit"
+}
