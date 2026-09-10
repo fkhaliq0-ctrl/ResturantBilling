@@ -54,6 +54,7 @@ export default function ItemMaster({ onBack }) {
   const [imageUrl, setImageUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  const [editMode, setEditMode] = useState('url'); // 'url' or 'file'
   const formRef = useRef(null);
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export default function ItemMaster({ onBack }) {
     setEditing({ ...emptyItem, id: 'item_' + Date.now() });
     setImageUrl('');
     setImagePreview('');
+    setEditMode('url');
     setShowForm(true);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
@@ -96,6 +98,7 @@ export default function ItemMaster({ onBack }) {
     setEditing({ ...item });
     setImageUrl(item.image || '');
     setImagePreview(item.image || '');
+    setEditMode(item.image?.startsWith('data:') ? 'file' : 'url');
     setShowForm(true);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
@@ -323,19 +326,59 @@ export default function ItemMaster({ onBack }) {
 
                 {/* Image URL */}
                 <div className="mb-3">
-                  <label className="text-gray-300 text-xs font-bold mb-1 block">Image URL (optional)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={imageUrl}
-                      onChange={(e) => { setImageUrl(e.target.value); setImagePreview(e.target.value); }}
-                      placeholder="https://example.com/image.jpg"
-                      className="flex-1 bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
-                    />
-                    {imageUrl && (
-                      <button onClick={() => { setImageUrl(''); setImagePreview(''); }} className="px-3 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold btn-press">Clear</button>
-                    )}
+                  <label className="text-gray-300 text-xs font-bold mb-1 block">Image Source</label>
+                  <div className="flex gap-2 mb-2">
+                    <button
+                      onClick={() => setEditMode('url')}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold btn-press ${editMode === 'url' ? 'bg-amber-500 text-white' : 'bg-slate-600 text-gray-300'}`}
+                    >
+                      🌐 URL
+                    </button>
+                    <button
+                      onClick={() => setEditMode('file')}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold btn-press ${editMode === 'file' ? 'bg-amber-500 text-white' : 'bg-slate-600 text-gray-300'}`}
+                    >
+                      📁 File
+                    </button>
                   </div>
+                  
+                  {editMode === 'url' ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={imageUrl}
+                        onChange={(e) => { setImageUrl(e.target.value); setImagePreview(e.target.value); }}
+                        placeholder="https://example.com/image.jpg"
+                        className="flex-1 bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                      />
+                      {imageUrl && (
+                        <button onClick={() => { setImageUrl(''); setImagePreview(''); }} className="px-3 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold btn-press">Clear</button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                              const base64 = e.target.result;
+                              setImageUrl(base64);
+                              setImagePreview(base64);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="flex-1 bg-slate-600 border border-slate-500 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                      />
+                      {imageUrl && (
+                        <button onClick={() => { setImageUrl(''); setImagePreview(''); }} className="px-3 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold btn-press">Clear</button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Category */}

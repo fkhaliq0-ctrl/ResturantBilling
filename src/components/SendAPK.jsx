@@ -5,7 +5,7 @@ import { playButtonPress, playCheckoutSuccess } from '../utils/audio';
 const APK_CONFIG_KEY = 'apk_distribution_config';
 
 const DEFAULT_CONFIG = {
-  apkUrl: 'https://github.com/fkhaliq0-ctrl/ResturantBilling/releases/latest/download/Mehfil-E-Nihari.apk',
+  apkUrl: 'https://drive.google.com/file/d/1sL9_Hari4tIWb9JfNEa-HojJpyBRiVg0/view?usp=sharing',
   appName: 'Mehfil-E-Nihari POS',
   version: '1.0.0',
   ownerPhone: '919999999999',
@@ -13,7 +13,7 @@ const DEFAULT_CONFIG = {
 
 export default function SendAPK({ onBack }) {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(true); // Start in edit mode so fields are visible
   const [phone, setPhone] = useState('');
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState('');
@@ -233,6 +233,10 @@ export default function SendAPK({ onBack }) {
                   <p className="text-white font-bold">{config.version}</p>
                 </div>
               </div>
+              <div className="bg-slate-800/50 rounded-xl p-3">
+                <p className="text-gray-500">Owner Phone</p>
+                <p className="text-white font-bold">{config.ownerPhone}</p>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -267,6 +271,16 @@ export default function SendAPK({ onBack }) {
                       text-white text-xs focus:border-amber-500 focus:outline-none"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs mb-1 block">Owner Phone (for WhatsApp)</label>
+                <input
+                  type="tel"
+                  value={config.ownerPhone}
+                  onChange={(e) => setConfig({ ...config, ownerPhone: e.target.value })}
+                  className="w-full py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600
+                    text-white text-xs focus:border-amber-500 focus:outline-none"
+                />
               </div>
               <button
                 onClick={saveConfig}
