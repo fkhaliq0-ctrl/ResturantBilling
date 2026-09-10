@@ -1,0 +1,20 @@
+{
+  "restaurantName": "Mehfil-E-Nihari",
+  "tagline": "Authentic Taste & Tradition",
+  "address": "Your Updated Address Here",
+  "city": "Delhi",
+  "state": "Delhi",
+  "phone": "",
+  "email": "",
+  "gstin": "",
+  "gstRate": 5,
+  "gstInclusive": false,
+  "fssai": "",
+  "invoicePrefix": "MEN",
+  "nextInvoiceNo": 1001,
+  "bankName": "",
+  "bankAccount": "",
+  "ifsc": "",
+  "upiId": "",
+  "pan": ""
+}
