@@ -2,7 +2,7 @@
 import { playButtonPress } from '../utils/audio';
 
 export default function TableSelector({ onSelectTable, onBack }) {
-  const tables = Array.from({ length: 12 }, (_, i) => \Table \\);
+  const tables = Array.from({ length: 12 }, (_, i) => 'Table ' + (i + 1));
 
   return (
     <div className="h-full flex flex-col bg-slate-900 text-white p-5 animate-fade-in overflow-y-auto">
