@@ -2,7 +2,7 @@
 import { playButtonPress } from '../utils/audio';
 
 export default function CategoryGrid({ categories = [], selectedCategory, onSelectCategory, onBack }) {
-  const safeCategories = Array.isArray(categories) ? categories : ['All', 'Nihari', 'Biryani', 'BBQ', 'Beverages'];
+  const safeCategories = Array.isArray(categories) && categories.length > 0 ? categories : ['All', 'Nihari', 'Biryani', 'BBQ', 'Beverages'];
 
   return (
     <div className="h-full flex flex-col bg-slate-900 text-white p-5 animate-fade-in overflow-y-auto">
@@ -23,7 +23,7 @@ export default function CategoryGrid({ categories = [], selectedCategory, onSele
               playButtonPress();
               onSelectCategory(cat);
             }}
-            className={py-6 rounded-2xl font-bold text-xl btn-press shadow-lg transition-all }
+            className={selectedCategory === cat ? "py-6 rounded-2xl font-bold text-xl btn-press shadow-lg transition-all bg-blue-600 text-white ring-4 ring-blue-400/50" : "py-6 rounded-2xl font-bold text-xl btn-press shadow-lg transition-all bg-slate-800 hover:bg-slate-700 text-slate-200"}
           >
             {cat}
           </button>
