@@ -2,7 +2,6 @@
 // Full IndexedDB backup/restore, CSV/Excel export, file download
 
 import { getAll, setItem } from './storage';
-import { getAllBills } from './storage';
 
 const DB_NAME = 'RestaurantBillingDB';
 

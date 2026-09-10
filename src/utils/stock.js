@@ -1,7 +1,7 @@
 // Closing Stock & Carry-Over Management
 // Stores daily leftover quantities, opening stock, and carry-over logic
 
-import { getAll, setItem, getItem, getTodayBills, getSetting, setSetting } from './storage';
+import { getAll, setItem, getItem, getSetting, setSetting } from './storage';
 
 const STOCK_STORE = 'closingStock';
 const OWNER_PIN_KEY = 'owner_pin_hash';

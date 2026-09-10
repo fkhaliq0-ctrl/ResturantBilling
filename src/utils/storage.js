@@ -143,6 +143,14 @@ export async function getBillById(id) {
   });
 }
 
+export async function getStoredBills() {
+  return getAll(STORES.bills);
+}
+
+export async function getStoredOrders() {
+  return getAll('orders');
+}
+
 export async function getTodayBills() {
   const allBills = await getAll(STORES.bills);
   const today = new Date().toISOString().split('T')[0];

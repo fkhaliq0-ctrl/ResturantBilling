@@ -1,8 +1,8 @@
 ﻿import { getAllBills } from "../utils/storage";
 
-export const generateBackup = () => {
+export const generateBackup = async () => {
   try {
-    const bills = getAllBills();
+    const bills = await getAllBills();
     const backupData = {
       timestamp: new Date().toISOString(),
       bills: bills || []
@@ -22,8 +22,8 @@ export const generateBackup = () => {
 };
 
 export const generateDailyBackup = generateBackup;
-export const getAllBackups = () => [];
-export const getBackupStats = () => ({ count: 0, size: "0 KB", lastBackup: "Never" });
+export const getAllBackups = async () => [];
+export const getBackupStats = async () => ({ count: 0, size: "0 KB", lastBackup: "Never" });
 export const exportAllBackupsAsJSON = generateBackup;
-export const scheduleDailyBackup = () => {};
-export const stopScheduledBackup = () => {};
+export const scheduleDailyBackup = async () => {};
+export const stopScheduledBackup = async () => {};

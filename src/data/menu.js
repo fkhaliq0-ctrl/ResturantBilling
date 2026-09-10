@@ -1,0 +1,1 @@
+﻿export const CATEGORIES = [{ id: 'nihari', name: 'Nihari Specialties', icon: '🍲' }, { id: 'breads', name: 'Breads & Tandoor', icon: '🫓' }, { id: 'starters', name: 'Starters & Kebabs', icon: '🍢' }, { id: 'beverages', name: 'Beverages & Desserts', icon: '🥤' }];
