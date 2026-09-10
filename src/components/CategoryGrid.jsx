@@ -1,41 +1,31 @@
+﻿import React from 'react';
 import { playButtonPress } from '../utils/audio';
 
-export default function CategoryGrid({ categories, onSelect }) {
+export default function CategoryGrid({ categories = [], selectedCategory, onSelectCategory, onBack }) {
+  const safeCategories = Array.isArray(categories) ? categories : ['All', 'Nihari', 'Biryani', 'BBQ', 'Beverages'];
+
   return (
-    <div className="animate-fade-in">
-      <h2 className="text-2xl font-bold text-white mb-4 px-1">
-        👆 Select Category
-      </h2>
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-        {categories.map((cat) => (
+    <div className="h-full flex flex-col bg-slate-900 text-white p-5 animate-fade-in overflow-y-auto">
+      {onBack && (
+        <button 
+          onClick={() => { playButtonPress(); onBack(); }} 
+          className="mb-4 flex items-center gap-2 text-gray-300 hover:text-white text-lg btn-press px-3 py-1 rounded-xl bg-white/10 w-fit"
+        >
+          ← Back
+        </button>
+      )}
+      <h1 className="text-2xl font-bold mb-4">📂 Select Category</h1>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {safeCategories.map((cat) => (
           <button
-            key={cat.id}
+            key={cat}
             onClick={() => {
               playButtonPress();
-              onSelect(cat.id);
+              onSelectCategory(cat);
             }}
-            className={`
-              relative overflow-hidden rounded-2xl p-4 flex flex-col items-center justify-center
-              bg-gradient-to-br ${cat.color}
-              btn-press transition-all duration-150 
-              shadow-lg hover:shadow-xl hover:scale-105
-              min-h-[110px]
-            `}
+            className={py-6 rounded-2xl font-bold text-xl btn-press shadow-lg transition-all }
           >
-            <span className="text-5xl sm:text-6xl mb-2 drop-shadow-lg">{cat.icon}</span>
-            <span className="text-white font-bold text-sm sm:text-base text-center drop-shadow-md">
-              {cat.name}
-            </span>
-            {cat.hi && (
-              <span className="text-white/80 text-xs font-medium text-center mt-0.5">
-                {cat.hi}
-              </span>
-            )}
-            {cat.ur && (
-              <span className="text-white/60 text-xs font-medium text-center mt-0.5" dir="rtl">
-                {cat.ur}
-              </span>
-            )}
+            {cat}
           </button>
         ))}
       </div>
