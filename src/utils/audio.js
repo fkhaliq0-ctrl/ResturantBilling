@@ -1,4 +1,7 @@
-﻿export const playButtonPress = () => { try { const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'); audio.volume = 0.2; audio.play().catch(()=>{}); } catch(e){} };
-export const playSuccessSound = () => { try { const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'); audio.volume = 0.3; audio.play().catch(()=>{}); } catch(e){} };
-export const playCheckoutSuccess = () => playSuccessSound();
-export const playErrorSound = () => { try { const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2957/2957-preview.mp3'); audio.volume = 0.3; audio.play().catch(()=>{}); } catch(e){} };
+﻿export const playButtonPress = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(440, ctx.currentTime); gain.gain.setValueAtTime(0.05, ctx.currentTime); osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.05); } catch (e) {} };
+export const playSuccessSound = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = 'triangle'; osc.frequency.setValueAtTime(587.33, ctx.currentTime); osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); gain.gain.setValueAtTime(0.1, ctx.currentTime); osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.2); } catch (e) {} };
+export const playErrorSound = () => { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, ctx.currentTime); gain.gain.setValueAtTime(0.1, ctx.currentTime); osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.2); } catch (e) {} };
+export const playCheckoutSuccess = playSuccessSound;
+export const playAddSound = playSuccessSound;
+export const playRemoveSound = playErrorSound;
+export const playKeyPress = playButtonPress;
