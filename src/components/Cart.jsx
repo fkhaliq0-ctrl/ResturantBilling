@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { playRemoveSound, playButtonPress } from '../utils/audio';
 
 export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, onToggle, activeTable, orderType }) {
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [showCustomerFields, setShowCustomerFields] = useState(false);
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
@@ -128,10 +132,41 @@ export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, 
               <span className="text-white text-3xl font-bold">₹{total}</span>
             </div>
 
+            {/* Customer Info Toggle */}
+            <button
+              onClick={() => setShowCustomerFields(!showCustomerFields)}
+              className="w-full py-2 rounded-xl bg-slate-700/50 border border-slate-600 text-gray-400 text-xs font-bold btn-press hover:bg-slate-600/50 transition-colors"
+            >
+              {showCustomerFields ? '▼ Hide Customer Fields' : '👤 + Add Customer Phone (Optional)'}
+            </button>
+
+            {/* Customer Phone/Name Fields — hidden by default */}
+            {showCustomerFields && (
+              <div className="space-y-2 animate-slide-up">
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Customer Name (optional)"
+                  className="w-full py-2 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white text-sm focus:border-amber-500 focus:outline-none"
+                />
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="📱 Customer Phone (e.g. 9876543210)"
+                  className="w-full py-2 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white text-sm focus:border-amber-500 focus:outline-none"
+                />
+                {customerPhone && customerPhone.length >= 10 && (
+                  <p className="text-green-400 text-[10px]">✅ Customer will be saved to database automatically</p>
+                )}
+              </div>
+            )}
+
             {/* Payment mode buttons — 3-column grid */}
             <div className="grid grid-cols-3 gap-2 mb-2">
               <button
-                onClick={() => onCheckout('cash')}
+                onClick={() => onCheckout('cash', 0, customerPhone, customerName)}
                 className="py-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 
                   text-white font-bold flex flex-col items-center gap-1 btn-press 
                   shadow-lg hover:from-green-400 hover:to-emerald-500 transition-all text-sm"
@@ -142,7 +177,7 @@ export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, 
               </button>
 
               <button
-                onClick={() => onCheckout('upi')}
+                onClick={() => onCheckout('upi', 0, customerPhone, customerName)}
                 className="py-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 
                   text-white font-bold flex flex-col items-center gap-1 btn-press 
                   shadow-lg hover:from-blue-400 hover:to-indigo-500 transition-all text-sm"
@@ -153,7 +188,7 @@ export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, 
               </button>
 
               <button
-                onClick={() => onCheckout('credit')}
+                onClick={() => onCheckout('credit', 0, customerPhone, customerName)}
                 className="py-3 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 
                   text-white font-bold flex flex-col items-center gap-1 btn-press 
                   shadow-lg hover:from-purple-400 hover:to-violet-500 transition-all text-sm"

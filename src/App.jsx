@@ -30,6 +30,7 @@ import InventoryStock from './components/InventoryStock';
 import VendorMaster from './components/VendorMaster';
 import BusinessProfile from './components/BusinessProfile';
 import RolePermissions from './components/RolePermissions';
+import SendAPK from './components/SendAPK';
 import { CATEGORIES } from './data/menu';
 import { playButtonPress, playCheckoutSuccess, playErrorSound } from './utils/audio';
 import { getPin } from './utils/pin';
@@ -104,7 +105,7 @@ export default function App() {
     });
   }, []);
 
-  const handleCheckout = useCallback(async (paymentMethod, discount = 0) => {
+  const handleCheckout = useCallback(async (paymentMethod, discount = 0, customerPhone = '', customerName = '') => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
     const total = Math.max(0, subtotal - discount);
     const bill = {
@@ -116,8 +117,48 @@ export default function App() {
       total,
       orderType: orderType || 'dine-in',
       table: activeTable || 'N/A',
-      paymentMethod
+      paymentMethod,
+      customerPhone: customerPhone || '',
+      customerName: customerName || '',
     };
+
+    // Auto-save customer to database
+    if (customerPhone && customerPhone.length >= 10) {
+      try {
+        const { getSetting, setSetting } = await import('./utils/storage');
+        const existing = (await getSetting('customers')) || [];
+        const cleanPhone = customerPhone.replace(/[^0-9]/g, '');
+        const existingIdx = existing.findIndex(c => c.phone?.replace(/[^0-9]/g, '') === cleanPhone);
+        if (existingIdx >= 0) {
+          // Update existing customer
+          existing[existingIdx] = {
+            ...existing[existingIdx],
+            name: customerName || existing[existingIdx].name,
+            totalVisits: (existing[existingIdx].totalVisits || 0) + 1,
+            totalSpend: (existing[existingIdx].totalSpend || 0) + total,
+            lastVisit: new Date().toISOString(),
+          };
+          await setSetting('customers', existing);
+        } else {
+          // Create new customer
+          const newCustomer = {
+            id: 'cust_' + Date.now(),
+            name: customerName || 'Walk-in Customer',
+            phone: customerPhone,
+            email: '',
+            gstin: '',
+            address: '',
+            loyaltyPoints: Math.floor(total / 10), // 1 point per ₹10 spent
+            totalVisits: 1,
+            totalSpend: total,
+            lastVisit: new Date().toISOString(),
+          };
+          await setSetting('customers', [...existing, newCustomer]);
+        }
+      } catch (err) {
+        console.error('Failed to auto-save customer:', err);
+      }
+    }
 
     await saveBill(bill);
     playCheckoutSuccess();
@@ -466,6 +507,9 @@ export default function App() {
         {screen === 'roles' && (
           <RolePermissions onBack={() => { playButtonPress(); setScreen('settings'); }} />
         )}
+        {screen === 'apk' && (
+          <SendAPK onBack={() => { playButtonPress(); setScreen('settings'); }} />
+        )}
 
         {screen === 'settings' && (
           <Settings
@@ -480,7 +524,7 @@ export default function App() {
           />
         )}
 
-        {screen !== 'order-type' && screen !== 'table-select' && screen !== 'success' && screen !== 'settings' && screen !== 'kds' && screen !== 'printer' && screen !== 'attendance' && screen !== 'hardware' && screen !== 'customers' && screen !== 'staff' && screen !== 'inventory' && screen !== 'vendor' && screen !== 'business-profile' && screen !== 'roles' && screen !== 'menu-master' && screen !== 'report' && screen !== 'audit' && screen !== 'closing' && screen !== 'owner' && screen !== 'purchase' && screen !== 'expenses' && screen !== 'backup' && screen !== 'sync' && screen !== 'ca' && screen !== 'eod' && screen !== 'whatsapp' && (
+        {screen !== 'order-type' && screen !== 'table-select' && screen !== 'success' && screen !== 'settings' && screen !== 'kds' && screen !== 'printer' && screen !== 'attendance' && screen !== 'hardware' && screen !== 'customers' && screen !== 'staff' && screen !== 'inventory' && screen !== 'vendor' && screen !== 'business-profile' && screen !== 'roles' && screen !== 'menu-master' && screen !== 'apk' && screen !== 'report' && screen !== 'audit' && screen !== 'closing' && screen !== 'owner' && screen !== 'purchase' && screen !== 'expenses' && screen !== 'backup' && screen !== 'sync' && screen !== 'ca' && screen !== 'eod' && screen !== 'whatsapp' && (
           <Cart
             cart={cart}
             onUpdateQty={handleUpdateQty}
