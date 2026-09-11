@@ -1,20 +1,8 @@
-{
-  "restaurantName": "Mehfil-E-Nihari",
-  "tagline": "Authentic Taste & Tradition",
-  "address": "Your Updated Address Here",
-  "city": "Delhi",
-  "state": "Delhi",
-  "phone": "",
-  "email": "",
-  "gstin": "",
-  "gstRate": 5,
-  "gstInclusive": false,
-  "fssai": "",
-  "invoicePrefix": "MEN",
-  "nextInvoiceNo": 1001,
-  "bankName": "",
-  "bankAccount": "",
-  "ifsc": "",
-  "upiId": "",
-  "pan": ""
+﻿{
+  "name": "MEHFIL-E-NIHARI",
+  "address": "12A/107, Main Road, Opp metro Pillar No 196, Maujpur, Delhi - 110053",
+  "contactNo": "9990155151",
+  "gstNo": "07ABXFM3984H1ZG",
+  "fssaiNo": "23323004001056",
+  "pricingPolicy": "GST Inclusive in Price"
 }
