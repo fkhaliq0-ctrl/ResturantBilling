@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.5.1",
+    "@capacitor/browser": "^8.0.4",
     "@capgo/capacitor-updater": "^8.51.15",
     "@tailwindcss/vite": "^4.3.3",
     "@whiskeysockets/baileys": "^7.0.0-rc14",

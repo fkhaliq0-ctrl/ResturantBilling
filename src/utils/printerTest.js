@@ -1,0 +1,1 @@
+export function testBluetooth() { console.log("BluetoothSerial available:", !!window.bluetoothSerial); if (window.bluetoothSerial) { window.bluetoothSerial.list((devices) => console.log("Paired devices:", devices), (err) => console.error("List error:", err)); } }
