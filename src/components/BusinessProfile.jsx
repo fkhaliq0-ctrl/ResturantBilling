@@ -1,153 +1,295 @@
-import { useState, useEffect } from 'react';
-import { getSetting, setSetting } from '../utils/storage';
-import { playButtonPress, playCheckoutSuccess } from '../utils/audio';
-
-const DEFAULT = {
-  restaurantName: 'Mehfil-E-Nihari', tagline: 'Authentic Taste & Tradition',
-  address: '', city: '', state: '', phone: '', email: '',
-  gstin: '', gstRate: 5, gstInclusive: false, fssai: '',
-  invoicePrefix: 'MEN', nextInvoiceNo: 1001, bankName: '', bankAccount: '', ifsc: '',
-  upiId: '', pan: '',
-};
+import React, { useState, useEffect, useRef } from 'react';
+import { loadBusinessProfileSync } from '../utils/storage';
 
 export default function BusinessProfile({ onBack }) {
-  const [config, setConfig] = useState(DEFAULT);
-  const [toast, setToast] = useState('');
-  const [tab, setTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('profile');
+  const [businessData, setBusinessData] = useState({
+    name: 'MEHFIL-E-NIHARI',
+    tagline: 'Authentic Taste & Tradition',
+    address: '12A/107, Main Road, Opp metro Pillar No 196, Maujpur, Delhi - 110053',
+    city: 'Delhi',
+    state: 'Delhi',
+    phone: '+91 9990515151',
+    email: '',
+    gst: '07ABXFM3984H1ZG',
+    gstin: '07ABXFM3984H1ZG',
+    fssai: '23323004001056',
+    invoicePrefix: 'MEN',
+    nextInvoiceNo: '1001',
+    upiId: '',
+    bankName: '',
+    accountNo: '',
+    ifsc: '',
+    logo: '/logo.png',
+    logoUrl: '',
+  });
+  const [saved, setSaved] = useState(false);
+  const fileInputRef = useRef(null);
 
-  useEffect(() => { loadConfig(); }, []);
+  useEffect(() => {
+    try {
+      const loaded = loadBusinessProfileSync();
+      setBusinessData(prev => ({
+        ...prev,
+        ...loaded,
+        name: loaded.restaurantName || loaded.name || prev.name,
+        gstin: loaded.gstin || loaded.gst || prev.gstin,
+        gst: loaded.gstin || loaded.gst || prev.gst,
+        logo: loaded.logoPath || loaded.logo || prev.logo,
+        tagline: loaded.tagline || prev.tagline,
+        city: loaded.city || prev.city,
+        state: loaded.state || prev.state,
+        email: loaded.email || prev.email,
+        fssai: loaded.fssai || prev.fssai,
+        invoicePrefix: loaded.invoicePrefix || prev.invoicePrefix,
+        nextInvoiceNo: loaded.nextInvoiceNo || prev.nextInvoiceNo,
+        upiId: loaded.upiId || prev.upiId,
+        bankName: loaded.bankName || prev.bankName,
+        accountNo: loaded.accountNo || prev.accountNo,
+        ifsc: loaded.ifsc || prev.ifsc,
+        logoUrl: loaded.logoUrl || prev.logoUrl || '',
+      }));
+    } catch (e) {
+      console.error('Failed to load business profile:', e);
+    }
+  }, []);
 
-  const loadConfig = async () => {
-    const saved = await getSetting('business_profile');
-    if (saved) setConfig({ ...DEFAULT, ...saved });
+  const handleSave = (e) => {
+    e.preventDefault();
+    try {
+      const saveData = {
+        ...businessData,
+        restaurantName: businessData.name,
+        gstin: businessData.gstin || businessData.gst,
+        gst: businessData.gstin || businessData.gst,
+        logoPath: businessData.logo,
+        logo: businessData.logo,
+        logoUrl: businessData.logoUrl,
+        tagline: businessData.tagline,
+        city: businessData.city,
+        state: businessData.state,
+        email: businessData.email,
+        fssai: businessData.fssai,
+        invoicePrefix: businessData.invoicePrefix,
+        nextInvoiceNo: businessData.nextInvoiceNo,
+        upiId: businessData.upiId,
+        bankName: businessData.bankName,
+        accountNo: businessData.accountNo,
+        ifsc: businessData.ifsc,
+      };
+      localStorage.setItem('business_profile', JSON.stringify(saveData));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error('Save failed:', err);
+      alert('Failed to save. Please try again.');
+    }
   };
 
-  const saveConfig = async () => {
-    playButtonPress();
-    await setSetting('business_profile', config);
-    playCheckoutSuccess();
-    setToast('Business profile saved!');
-    setTimeout(() => setToast(''), 2500);
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBusinessData(prev => ({ ...prev, logo: reader.result, logoUrl: '' }));
+    };
+    reader.readAsDataURL(file);
   };
 
-  const update = (key, val) => setConfig({ ...config, [key]: val });
+  const handleLogoUrlChange = (url) => {
+    setBusinessData(prev => ({ ...prev, logoUrl: url, logo: url }));
+  };
+
+  const inputCls = "mt-1 block w-full rounded-md border-gray-700 bg-gray-800 text-white shadow-sm p-2 border focus:border-amber-500 focus:ring-1 focus:ring-amber-500";
+  const labelCls = "block text-sm font-medium text-gray-300";
 
   const tabs = [
-    { id: 'profile', label: '🏢 Profile', icon: '🏢' },
-    { id: 'tax', label: '🧾 GST & Tax', icon: '🧾' },
-    { id: 'invoice', label: '📄 Invoice', icon: '📄' },
-    { id: 'bank', label: '🏦 Bank', icon: '🏦' },
+    { id: 'profile', icon: '👤', label: 'Profile' },
+    { id: 'gst', icon: '🧾', label: 'GST & Tax' },
+    { id: 'invoice', icon: '🧾', label: 'Invoice' },
+    { id: 'bank', icon: '🏦', label: 'Bank' },
   ];
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 to-slate-800 animate-fade-in">
-      <div className="p-4 border-b border-slate-700 shrink-0">
-        <button onClick={() => { playButtonPress(); onBack(); }}
-          className="mb-2 flex items-center gap-2 text-gray-300 hover:text-white transition-colors btn-press px-2 py-1 rounded-xl hover:bg-white/10">
-          <span className="text-2xl">←</span><span className="font-semibold">Back</span>
-        </button>
-        <h1 className="text-2xl font-bold text-white">🏢 Business Profile & GST</h1>
+    <div className="p-4 md:p-6 max-w-4xl mx-auto text-white">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        {onBack && (
+          <button onClick={onBack} className="px-3 py-1.5 bg-gray-700 rounded-lg text-sm hover:bg-gray-600 transition">
+            ← Back
+          </button>
+        )}
+        <h2 className="text-xl md:text-2xl font-bold">Business Profile & Settings</h2>
       </div>
 
-      {toast && <div className="mx-4 mt-3 p-3 rounded-xl bg-emerald-500/20 text-emerald-400 text-center font-bold text-sm animate-slide-up">{toast}</div>}
-
       {/* Tabs */}
-      <div className="flex gap-1.5 px-4 py-2 overflow-x-auto shrink-0">
+      <div className="flex space-x-2 mb-6 border-b border-gray-700 pb-2 overflow-x-auto">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${tab === t.id ? 'bg-amber-500 text-white' : 'bg-slate-700/50 text-gray-400'}`}>
-            {t.label}
+          <button key={t.id} type="button" onClick={() => setActiveTab(t.id)}
+            className={`px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition ${
+              activeTab === t.id ? 'bg-amber-600 text-white shadow-lg' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}>
+            {t.icon} {t.label}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {tab === 'profile' && (
-          <>
-            <Field label="Restaurant Name" value={config.restaurantName} onChange={v => update('restaurantName', v)} />
-            <Field label="Tagline" value={config.tagline} onChange={v => update('tagline', v)} />
-            <Field label="Full Address" value={config.address} onChange={v => update('address', v)} textarea />
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="City" value={config.city} onChange={v => update('city', v)} />
-              <Field label="State" value={config.state} onChange={v => update('state', v)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Phone" value={config.phone} onChange={v => update('phone', v)} type="tel" />
-              <Field label="Email" value={config.email} onChange={v => update('email', v)} type="email" />
-            </div>
-          </>
-        )}
+      {/* Save Feedback */}
+      {saved && (
+        <div className="mb-4 p-3 rounded-lg bg-green-900/50 border border-green-600 text-green-300 text-sm flex items-center gap-2">
+          ✅ Business profile saved successfully!
+        </div>
+      )}
 
-        {tab === 'tax' && (
-          <>
-            <Field label="GSTIN" value={config.gstin} onChange={v => update('gstin', v)} placeholder="27AABCU9603R1ZM" />
-            <Field label="FSSAI License No." value={config.fssai} onChange={v => update('fssai', v)} />
-            <Field label="PAN Number" value={config.pan} onChange={v => update('pan', v)} />
-            <div className="grid grid-cols-2 gap-3">
+      <form onSubmit={handleSave} className="space-y-4 bg-gray-900 p-6 rounded-lg border border-gray-800">
+
+        {/* ── Profile Tab ── */}
+        {activeTab === 'profile' && (
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls}>Restaurant Name *</label>
+              <input type="text" required value={businessData.name} onChange={(e) => setBusinessData({...businessData, name: e.target.value})} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Tagline / Slogan</label>
+              <input type="text" value={businessData.tagline} onChange={(e) => setBusinessData({...businessData, tagline: e.target.value})} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Full Address *</label>
+              <input type="text" required value={businessData.address} onChange={(e) => setBusinessData({...businessData, address: e.target.value})} className={inputCls} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-gray-400 text-xs mb-1 block">GST Rate (%)</label>
-                <select value={config.gstRate} onChange={e => update('gstRate', Number(e.target.value))}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white text-sm focus:border-amber-500 focus:outline-none">
-                  <option value={0}>0% (Exempt)</option><option value={5}>5%</option><option value={12}>12%</option><option value={18}>18%</option>
-                </select>
+                <label className={labelCls}>City</label>
+                <input type="text" value={businessData.city} onChange={(e) => setBusinessData({...businessData, city: e.target.value})} className={inputCls} />
               </div>
               <div>
-                <label className="text-gray-400 text-xs mb-1 block">Tax Mode</label>
-                <select value={config.gstInclusive ? 'inclusive' : 'exclusive'} onChange={e => update('gstInclusive', e.target.value === 'inclusive')}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white text-sm focus:border-amber-500 focus:outline-none">
-                  <option value="exclusive">Exclusive (Add GST on top)</option>
-                  <option value="inclusive">Inclusive (GST included in price)</option>
-                </select>
+                <label className={labelCls}>State</label>
+                <input type="text" value={businessData.state} onChange={(e) => setBusinessData({...businessData, state: e.target.value})} className={inputCls} />
               </div>
             </div>
-          </>
-        )}
-
-        {tab === 'invoice' && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Invoice Prefix" value={config.invoicePrefix} onChange={v => update('invoicePrefix', v)} placeholder="MEN" />
-              <Field label="Next Invoice No." value={config.nextInvoiceNo} onChange={v => update('nextInvoiceNo', Number(v))} type="number" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Contact Phone *</label>
+                <input type="tel" required value={businessData.phone} onChange={(e) => setBusinessData({...businessData, phone: e.target.value})} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Email</label>
+                <input type="email" value={businessData.email} onChange={(e) => setBusinessData({...businessData, email: e.target.value})} placeholder="restaurant@email.com" className={inputCls} />
+              </div>
             </div>
-            <div className="bg-slate-700/30 rounded-xl p-3 text-xs text-gray-400">
-              💡 Preview: <span className="text-white font-bold">{config.invoicePrefix}-{String(config.nextInvoiceNo).padStart(4, '0')}</span>
+          </div>
+        )}
+
+        {/* ── GST & Tax Tab ── */}
+        {activeTab === 'gst' && (
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls}>GSTIN / Tax ID</label>
+              <input type="text" value={businessData.gstin || businessData.gst} onChange={(e) => setBusinessData({...businessData, gstin: e.target.value, gst: e.target.value})} placeholder="e.g. 07ABXFM3984H1ZG" className={inputCls} />
             </div>
-          </>
+            <div>
+              <label className={labelCls}>FSSAI License No.</label>
+              <input type="text" value={businessData.fssai} onChange={(e) => setBusinessData({...businessData, fssai: e.target.value})} placeholder="e.g. 23323004001056" className={inputCls} />
+            </div>
+            <div className="p-3 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-400">
+              💡 Enter your GSTIN and FSSAI numbers here. These will automatically appear on all invoices, receipts, and thermal prints.
+            </div>
+          </div>
         )}
 
-        {tab === 'bank' && (
-          <>
-            <Field label="Bank Name" value={config.bankName} onChange={v => update('bankName', v)} />
-            <Field label="Account Number" value={config.bankAccount} onChange={v => update('bankAccount', v)} />
-            <Field label="IFSC Code" value={config.ifsc} onChange={v => update('ifsc', v)} />
-            <Field label="UPI ID" value={config.upiId} onChange={v => update('upiId', v)} placeholder="merchant@upi" />
-          </>
+        {/* ── Invoice Tab ── */}
+        {activeTab === 'invoice' && (
+          <div className="space-y-5">
+            {/* Logo Section */}
+            <div className="p-4 rounded-lg bg-gray-800 border border-gray-700">
+              <h3 className="text-sm font-bold text-amber-400 mb-3">🖼️ Restaurant Logo</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* File Browser */}
+                <div>
+                  <label className={labelCls}>📂 Upload from PC</label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 px-3 py-2 bg-gray-700 rounded-lg text-sm text-gray-300 hover:bg-gray-600 border border-gray-600 transition text-left truncate">
+                      {businessData.logo && businessData.logo.startsWith('data:') ? '📷 Image loaded — click to change' : '📂 Browse image file...'}
+                    </button>
+                  </div>
+                </div>
+                {/* URL Input */}
+                <div>
+                  <label className={labelCls}>🔗 Image URL / Web Link</label>
+                  <input type="url" value={businessData.logoUrl || ''} onChange={(e) => handleLogoUrlChange(e.target.value)}
+                    placeholder="https://example.com/logo.png" className={inputCls} />
+                </div>
+              </div>
+              {/* Logo Preview */}
+              {businessData.logo && (
+                <div className="mt-4 flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-lg bg-white flex items-center justify-center overflow-hidden border-2 border-amber-500">
+                    <img src={businessData.logo} alt="Logo Preview" className="max-w-full max-h-full object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    <p>Preview of current logo</p>
+                    <button type="button" onClick={() => setBusinessData(prev => ({...prev, logo: '', logoUrl: ''}))}
+                      className="mt-1 text-red-400 hover:text-red-300 underline text-xs">
+                      Remove logo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Invoice Settings */}
+            <div>
+              <h3 className="text-sm font-bold text-amber-400 mb-3">🧾 Invoice Numbering</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Invoice Prefix</label>
+                  <input type="text" value={businessData.invoicePrefix} onChange={(e) => setBusinessData({...businessData, invoicePrefix: e.target.value})} placeholder="MEN" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Next Invoice No.</label>
+                  <input type="number" value={businessData.nextInvoiceNo} onChange={(e) => setBusinessData({...businessData, nextInvoiceNo: e.target.value})} placeholder="1001" className={inputCls} />
+                </div>
+              </div>
+              <div className="mt-2 text-sm text-gray-400">
+                Preview: <span className="font-mono text-amber-400 text-lg">{businessData.invoicePrefix}-{businessData.nextInvoiceNo}</span>
+              </div>
+            </div>
+          </div>
         )}
 
-        <button onClick={saveConfig}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg font-bold btn-press shadow-xl mt-4">
+        {/* ── Bank Tab ── */}
+        {activeTab === 'bank' && (
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls}>UPI ID (for QR codes)</label>
+              <input type="text" value={businessData.upiId} onChange={(e) => setBusinessData({...businessData, upiId: e.target.value})} placeholder="e.g. mehfil@upi" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Bank Name</label>
+              <input type="text" value={businessData.bankName} onChange={(e) => setBusinessData({...businessData, bankName: e.target.value})} placeholder="e.g. State Bank of India" className={inputCls} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Account Number</label>
+                <input type="text" value={businessData.accountNo} onChange={(e) => setBusinessData({...businessData, accountNo: e.target.value})} placeholder="Account Number" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>IFSC Code</label>
+                <input type="text" value={businessData.ifsc} onChange={(e) => setBusinessData({...businessData, ifsc: e.target.value})} placeholder="e.g. SBIN0001234" className={inputCls} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Save Button */}
+        <button type="submit"
+          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold text-lg transition shadow-lg shadow-green-600/20">
           💾 Save Business Profile
         </button>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, value, onChange, type = 'text', placeholder = '', textarea }) {
-  if (textarea) {
-    return (
-      <div>
-        <label className="text-gray-400 text-xs mb-1 block">{label}</label>
-        <textarea value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={2}
-          className="w-full py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white text-sm focus:border-amber-500 focus:outline-none resize-none" />
-      </div>
-    );
-  }
-  return (
-    <div>
-      <label className="text-gray-400 text-xs mb-1 block">{label}</label>
-      <input type={type} value={value || ''} onChange={e => onChange(type === 'number' ? Number(e.target.value) : e.target.value)} placeholder={placeholder}
-        className="w-full py-2.5 px-3 rounded-xl bg-slate-800 border border-slate-600 text-white text-sm focus:border-amber-500 focus:outline-none" />
+      </form>
     </div>
   );
 }

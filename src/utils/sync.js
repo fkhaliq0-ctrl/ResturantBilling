@@ -1,205 +1,176 @@
-// Multi-Device Real-Time Sync Engine
-// Pushes local changes to cloud, receives cloud changes in real-time
-// Falls back to local IndexedDB when cloud is unavailable
+// ── Multi-Outlet Real-Time Sync Engine ───────────────────
+// Provides real-time sync of bills, menu items, and customer data
+// across desktop and mobile clients via polling + localStorage events
 
-import {
-  initCloud, cloudSave, cloudDelete, cloudGetAll,
-  isCloudConnected, onConnectionChange,
-  subscribeToCollection, getDeviceId, getDeviceName,
-  isSyncEnabled, saveFirebaseConfig, setSyncEnabled,
-} from './cloud';
-import { getAll, setItem, getItem, deleteItem } from './storage';
+const SYNC_KEY = 'mehfil_sync_channel';
+const SYNC_INTERVAL_MS = 5000; // 5 seconds
+let syncTimer = null;
 
-// ── Sync state ───────────────────────────────────────────────
-let syncActive = false;
-let syncQueue = []; // pending local changes
-let syncCallbacks = [];
-let lastSyncTime = null;
+// Broadcast channel for same-origin tabs (cross-tab sync)
+let broadcastChannel = null;
+try {
+  broadcastChannel = new BroadcastChannel('mehfil_pos_sync');
+} catch (e) {
+  // BroadcastChannel not supported — fallback to localStorage events
+}
 
-// ── Collection names to sync ─────────────────────────────────
-const SYNC_STORES = ['bills', 'purchases', 'auditLogs', 'closingStock', 'menu_items'];
-const COLLECTION_MAP = {
-  bills: 'bills',
-  purchases: 'purchases',
-  auditLogs: 'audit_logs',
-  closingStock: 'closing_stock',
-  items: 'menu_items',
-};
+// ── Initialize Sync ─────────────────────────────────────
+export function initSync() {
+  return new Promise((resolve) => {
+    // Listen for storage changes (cross-tab real-time sync)
+    window.addEventListener('storage', handleStorageEvent);
 
-// ── Initialize sync engine ───────────────────────────────────
-export async function initSync() {
-  const enabled = await isSyncEnabled();
-  if (!enabled) return false;
+    // Listen for BroadcastChannel messages
+    if (broadcastChannel) {
+      broadcastChannel.onmessage = (event) => {
+        if (event.data?.type === 'SYNC_UPDATE') {
+          console.log('[Sync] Received update:', event.data.store);
+          window.dispatchEvent(new CustomEvent('mehfil_sync', { detail: event.data }));
+        }
+      };
+    }
 
-  const ok = await initCloud();
-  if (!ok) return false;
+    // Start periodic sync check
+    startSyncPolling();
+    console.log('[Sync] Multi-outlet sync initialized');
+    resolve(true);
+  });
+}
 
-  syncActive = true;
+// ── Broadcast update to other tabs/devices ──────────────
+export function broadcastUpdate(storeName, data) {
+  const payload = { type: 'SYNC_UPDATE', store: storeName, data, timestamp: Date.now() };
 
-  // Listen for cloud changes on all collections
-  for (const storeName of SYNC_STORES) {
-    subscribeToCollection(storeName, (cloudDocs) => {
-      handleCloudUpdate(storeName, cloudDocs);
-    });
+  // BroadcastChannel (same-origin tabs)
+  if (broadcastChannel) {
+    try { broadcastChannel.postMessage(payload); } catch (e) { /* ignore */ }
   }
 
-  // Process any queued offline changes
-  processSyncQueue();
+  // localStorage event (cross-tab fallback)
+  try {
+    localStorage.setItem(SYNC_KEY, JSON.stringify(payload));
+  } catch (e) { /* ignore */ }
+}
 
+// ── Handle incoming storage events ──────────────────────
+function handleStorageEvent(event) {
+  if (event.key === SYNC_KEY && event.newValue) {
+    try {
+      const payload = JSON.parse(event.newValue);
+      if (payload.type === 'SYNC_UPDATE') {
+        console.log('[Sync] Cross-tab update received:', payload.store);
+        window.dispatchEvent(new CustomEvent('mehfil_sync', { detail: payload }));
+      }
+    } catch (e) { /* ignore */ }
+  }
+}
+
+// ── Periodic sync polling (for cloud/backend) ───────────
+function startSyncPolling() {
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(() => {
+    // Check for pending offline orders and sync when online
+    if (navigator.onLine) {
+      flushOfflineQueue();
+    }
+  }, SYNC_INTERVAL_MS);
+}
+
+// ── Offline Queue (outbox pattern) ──────────────────────
+export function addToOutbox(order) {
+  const queue = JSON.parse(localStorage.getItem('mehfil_outbox') || '[]');
+  queue.push({ ...order, queuedAt: Date.now(), status: 'pending' });
+  localStorage.setItem('mehfil_outbox', JSON.stringify(queue));
+}
+
+export async function flushOfflineQueue() {
+  const queue = JSON.parse(localStorage.getItem('mehfil_outbox') || '[]');
+  if (queue.length === 0) return;
+
+  const backendUrl = localStorage.getItem('mehfil_backend_url') || 'https://mehfil-pos-backend.onrender.com';
+  const remaining = [];
+
+  for (const item of queue) {
+    if (item.status === 'sent') continue;
+    try {
+      const resp = await fetch(backendUrl + '/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item),
+      });
+      if (resp.ok) {
+        console.log('[Sync] Outbox order sent:', item.id);
+        broadcastUpdate('bills', item);
+      } else {
+        remaining.push(item);
+      }
+    } catch (e) {
+      remaining.push(item);
+    }
+  }
+
+  localStorage.setItem('mehfil_outbox', JSON.stringify(remaining));
+}
+
+// ── Sync status ─────────────────────────────────────────
+export function getSyncStatus() {
+  const outbox = JSON.parse(localStorage.getItem('mehfil_outbox') || '[]');
+  return {
+    pending: outbox.length,
+    lastSync: localStorage.getItem('mehfil_last_sync') || null,
+    online: navigator.onLine,
+    backendUrl: localStorage.getItem('mehfil_backend_url') || 'https://mehfil-pos-backend.onrender.com',
+  };
+}
+
+// ── Full sync all stores ────────────────────────────────
+export async function fullSyncAll() {
+  const stores = ['bills', 'items', 'customers', 'staff', 'inventory', 'vendors', 'expenses'];
+  for (const store of stores) {
+    const data = JSON.parse(localStorage.getItem(store) || '[]');
+    if (data.length > 0) broadcastUpdate(store, data);
+  }
+  localStorage.setItem('mehfil_last_sync', new Date().toISOString());
   return true;
 }
 
-// ── Push local change to cloud ───────────────────────────────
-export async function pushToCloud(storeName, data, action = 'save') {
-  if (!syncActive || !isCloudConnected()) {
-    // Queue for later
-    syncQueue.push({ storeName, data, action, timestamp: Date.now() });
-    notifyCallbacks();
-    return false;
-  }
-
-  try {
-    if (action === 'save') {
-      const id = data.id || data.date || Date.now().toString(36);
-      await cloudSave(storeName, id, { ...data, _deviceId: getDeviceId(), _deviceName: getDeviceName() });
-    } else if (action === 'delete') {
-      await cloudDelete(storeName, data.id);
-    }
-    lastSyncTime = new Date().toISOString();
-    notifyCallbacks();
-    return true;
-  } catch (err) {
-    // Queue for retry
-    syncQueue.push({ storeName, data, action, timestamp: Date.now() });
-    notifyCallbacks();
-    return false;
-  }
-}
-
-// ── Handle incoming cloud update ─────────────────────────────
-function handleCloudUpdate(storeName, cloudDocs) {
-  // Only update local if the change came from another device
-  const deviceId = getDeviceId();
-
-  cloudDocs.forEach((cloudDoc) => {
-    if (cloudDoc._deviceId === deviceId) return; // Skip our own changes
-
-    // Write to local IndexedDB
-    const id = cloudDoc.id || cloudDoc.date;
-    if (id) {
-      setItem(storeName, id, cloudDoc).catch(() => {});
-    }
-  });
-
-  lastSyncTime = new Date().toISOString();
-  notifyCallbacks();
-}
-
-// ── Process queued offline changes ───────────────────────────
-async function processSyncQueue() {
-  if (syncQueue.length === 0) return;
-  if (!isCloudConnected()) return;
-
-  const queue = [...syncQueue];
-  syncQueue = [];
-
-  for (const entry of queue) {
-    try {
-      if (entry.action === 'save') {
-        await cloudSave(entry.storeName, entry.data.id || entry.data.date, entry.data);
-      } else if (entry.action === 'delete') {
-        await cloudDelete(entry.storeName, entry.data.id);
-      }
-    } catch {
-      // Re-queue failed items
-      syncQueue.push(entry);
-    }
-  }
-  notifyCallbacks();
-}
-
-// ── Full sync: push all local data ───────────────────────────
-export async function fullSyncAll() {
-  const results = {};
-  for (const storeName of SYNC_STORES) {
-    try {
-      const items = await getAll(storeName === 'menu_items' ? 'items' : storeName);
-      for (const item of items) {
-        await pushToCloud(storeName, item, 'save');
-      }
-      results[storeName] = { ok: true, count: items.length };
-    } catch (err) {
-      results[storeName] = { ok: false, error: err.message };
-    }
-  }
-  lastSyncTime = new Date().toISOString();
-  notifyCallbacks();
-  return results;
-}
-
-// ── Full pull: get all cloud data into local ─────────────────
+// ── Full pull from backend ──────────────────────────────
 export async function fullPullAll() {
-  const results = {};
-  for (const storeName of SYNC_STORES) {
+  const backendUrl = localStorage.getItem('mehfil_backend_url') || 'https://mehfil-pos-backend.onrender.com';
+  const stores = ['bills', 'items', 'customers'];
+  for (const store of stores) {
     try {
-      const cloudDocs = await cloudGetAll(storeName);
-      const localStore = Object.entries(COLLECTION_MAP).find(([, v]) => v === storeName)?.[0] || storeName;
-      for (const doc of cloudDocs) {
-        const id = doc.id || doc.date;
-        if (id) {
-          await setItem(localStore, id, doc);
+      const resp = await fetch(backendUrl + '/api/' + store);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const existing = JSON.parse(localStorage.getItem(store) || '[]');
+          const merged = [...data, ...existing.filter(e => !data.find(d => d.id === e.id))];
+          localStorage.setItem(store, JSON.stringify(merged));
         }
       }
-      results[storeName] = { ok: true, count: cloudDocs.length };
-    } catch (err) {
-      results[storeName] = { ok: false, error: err.message };
-    }
+    } catch (e) { console.log('[Sync] Pull failed for', store, e.message); }
   }
-  lastSyncTime = new Date().toISOString();
-  notifyCallbacks();
-  return results;
+  return true;
 }
 
-// ── Sync status ──────────────────────────────────────────────
-export function getSyncStatus() {
-  return {
-    active: syncActive,
-    connected: isCloudConnected(),
-    queueLength: syncQueue.length,
-    lastSyncTime,
-    deviceId: getDeviceId(),
-    deviceName: getDeviceName(),
-  };
-}
-
-// ── Subscribe to sync status changes ─────────────────────────
+// ── Sync change listener ────────────────────────────────
 export function onSyncChange(callback) {
-  syncCallbacks.push(callback);
-  return () => {
-    syncCallbacks = syncCallbacks.filter((cb) => cb !== callback);
-  };
+  const handler = (event) => callback(event.detail);
+  window.addEventListener('mehfil_sync', handler);
+  return () => window.removeEventListener('mehfil_sync', handler);
 }
 
-function notifyCallbacks() {
-  const status = getSyncStatus();
-  syncCallbacks.forEach((cb) => cb(status));
+// ── Setup cloud sync with backend URL ───────────────────
+export function setupCloudSync(backendUrl) {
+  localStorage.setItem('mehfil_backend_url', backendUrl);
+  console.log('[Sync] Cloud backend configured:', backendUrl);
+  return true;
 }
 
-// ── Stop sync ────────────────────────────────────────────────
+// ── Cleanup ─────────────────────────────────────────────
 export function stopSync() {
-  syncActive = false;
-  // unsubscribeAll will be called via the cloud module
-  syncQueue = [];
-  notifyCallbacks();
-}
-
-// ── Setup: save config + enable + init ───────────────────────
-export async function setupCloudSync(config, deviceName) {
-  await saveFirebaseConfig(config);
-  if (deviceName) {
-    const { setDeviceName } = await import('./cloud');
-    setDeviceName(deviceName);
-  }
-  await setSyncEnabled(true);
-  return initSync();
+  if (syncTimer) clearInterval(syncTimer);
+  window.removeEventListener('storage', handleStorageEvent);
+  if (broadcastChannel) broadcastChannel.close();
 }

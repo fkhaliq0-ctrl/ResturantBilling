@@ -1,7 +1,3 @@
-<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Mehfil-E-Nihari</string>
-    <string name="title_activity_main">Mehfil-E-Nihari</string>
-    <string name="package_name">com.resturantbilling.app</string>
-    <string name="custom_url_scheme">com.resturantbilling.app</string>
+  <string name="app_name">resturantbilling</string>
 </resources>

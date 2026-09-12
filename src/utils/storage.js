@@ -1,18 +1,41 @@
-// Universal Storage Utility (localStorage + Remote Vercel Config Sync)
+﻿// Universal Storage Utility (localStorage + IndexedDB + Cloud Sync)
+
+// ── Hardcoded Restaurant Defaults ──────────────────────────
+export const RESTAURANT_DEFAULTS = {
+  name: 'MEHFIL-E-NIHARI',
+  restaurantName: 'Mehfil-E-Nihari',
+  address: '12A/107, Main Road, Opp metro Pillar No 196, Maujpur, Delhi - 110053',
+  city: 'Delhi',
+  state: 'Delhi',
+  phone: '+91 9990515151',
+  email: '',
+  gst: '07ABXFM3984H1ZG',
+  gstin: '07ABXFM3984H1ZG',
+  fssai: '23323004001056',
+  logoPath: '/logo.png',
+};
+
+// ── Synchronous business profile (no async, no remote fetch) ──
+export function loadBusinessProfileSync() {
+  try {
+    const raw = localStorage.getItem('business_profile');
+    const saved = raw ? JSON.parse(raw) : {};
+    return {
+      ...RESTAURANT_DEFAULTS,
+      ...saved,
+      name: saved.restaurantName || saved.name || RESTAURANT_DEFAULTS.name,
+      gst: saved.gstin || saved.gst || RESTAURANT_DEFAULTS.gst,
+    };
+  } catch {
+    return { ...RESTAURANT_DEFAULTS };
+  }
+}
 
 export async function getSetting(key) {
-  if (key === "business_profile") {
-    try {
-      const res = await fetch("/config.json", { cache: "no-store" });
-      if (res.ok) {
-        const remoteConfig = await res.json();
-        return remoteConfig;
-      }
-    } catch (e) {
-      console.log("Offline, falling back to local storage");
-    }
+  // business_profile: local-first, no remote fetch
+  if (key === 'business_profile') {
+    return loadBusinessProfileSync();
   }
-
   const val = localStorage.getItem(key);
   return val ? JSON.parse(val) : null;
 }
@@ -36,7 +59,7 @@ export async function setItem(storeName, id, data) {
     all.push(newItem);
   }
   localStorage.setItem(storeName, JSON.stringify(all));
-  return newItem;
+  return typeof newItem.id === 'object' ? (newItem.id.id || Date.now().toString()) : (newItem.id || Date.now().toString());
 }
 
 export async function getAll(storeName) {
@@ -66,7 +89,71 @@ export async function saveBill(bill) {
 }
 
 export async function loadBusinessProfile() {
-  return await getSetting("business_profile");
+  return loadBusinessProfileSync();
+}
+
+// ── Customer Database ──────────────────────────────────────
+export async function getCustomers() {
+  return await getAll('customers');
+}
+
+export async function saveCustomers(customers) {
+  localStorage.setItem('customers', JSON.stringify(customers));
+  return true;
+}
+
+export async function upsertCustomer(phone, data) {
+  const all = await getCustomers();
+  const idx = all.findIndex(c => c.phone === phone);
+  if (idx >= 0) {
+    all[idx] = { ...all[idx], ...data, lastVisit: new Date().toISOString() };
+  } else {
+    all.push({ phone, ...data, visits: 1, totalSpend: 0, loyaltyPoints: 0, lastVisit: new Date().toISOString(), createdAt: new Date().toISOString() });
+  }
+  await saveCustomers(all);
+  return all[idx >= 0 ? idx : all.length - 1];
+}
+
+// ── D-Drive Snapshot & Backup ──────────────────────────────
+export async function generateBackupSnapshot() {
+  const data = {
+    bills: await getAll('bills'),
+    items: await getAll('items'),
+    customers: await getAll('customers'),
+    staff: await getAll('staff'),
+    inventory: await getAll('inventory'),
+    vendors: await getAll('vendors'),
+    expenses: await getAll('expenses'),
+    purchases: await getAll('purchases'),
+    businessProfile: loadBusinessProfileSync(),
+    auditLog: await getAll('audit_log'),
+    generatedAt: new Date().toISOString(),
+  };
+  return data;
+}
+
+export function downloadBackupJSON(data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Mehfil-Backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function downloadBackupCSV(data, type) {
+  if (!data || data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  const rows = data.map(row => headers.map(h => JSON.stringify(row[h] ?? '')).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Mehfil-${type}-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function getTodayBills() {

@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { playRemoveSound, playButtonPress } from '../utils/audio';
 
 export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, onToggle, activeTable, orderType }) {
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  const [creditName, setCreditName] = useState('');
+  const [creditPhone, setCreditPhone] = useState('');
+  const [showCredit, setShowCredit] = useState(false);
 
   return (
     <>
@@ -153,7 +157,7 @@ export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, 
               </button>
 
               <button
-                onClick={() => onCheckout('credit')}
+                onClick={() => { playButtonPress(); setShowCredit(!showCredit); }}
                 className="py-3 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 
                   text-white font-bold flex flex-col items-center gap-1 btn-press 
                   shadow-lg hover:from-purple-400 hover:to-violet-500 transition-all text-sm"
@@ -163,6 +167,26 @@ export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, 
                 <span className="text-[10px] font-normal text-purple-100">Pay Later</span>
               </button>
             </div>
+
+            {/* Credit Details Panel (name + phone for credit billing) */}
+            {showCredit && (
+              <div className="bg-slate-700/50 rounded-xl p-3 space-y-2 border border-purple-500/30 animate-slide-up">
+                <p className="text-white font-bold text-xs">Credit Details:</p>
+                <input type="text" value={creditName} onChange={e => setCreditName(e.target.value)}
+                  placeholder="Customer Name (required for credit)"
+                  className="w-full py-2 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white text-xs focus:border-purple-500 focus:outline-none" />
+                <input type="tel" value={creditPhone} onChange={e => setCreditPhone(e.target.value)}
+                  placeholder="Phone Number"
+                  className="w-full py-2 px-3 rounded-lg bg-slate-800 border border-slate-600 text-white text-xs focus:border-purple-500 focus:outline-none" />
+                <button onClick={() => {
+                  if (!creditName.trim()) { alert('Enter customer name for credit billing'); return; }
+                  onCheckout({ method: 'credit', name: creditName, phone: creditPhone });
+                  setCreditName(''); setCreditPhone(''); setShowCredit(false);
+                }} className="w-full py-3 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white font-bold text-sm btn-press shadow-lg">
+                  Confirm Credit Order
+                </button>
+              </div>
+            )}
 
             {/* Active table indicator */}
             {orderType === 'dine-in' && activeTable && (

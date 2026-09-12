@@ -54,3 +54,20 @@ app.listen(PORT, () => {
   console.log('🌐 http://localhost:' + PORT);
   console.log('🔄 Cloud Sync Relay: /api/sync enabled');
 });
+
+// --- Custom Modular Additions ---
+const { initializeOutletSync } = require('./multiOutletSync');
+const { initializeDDriveSnapshots } = require('./dDriveBackup');
+const { initializePurchaseTracking } = require('./smartPurchaseTracking');
+const { initializeBluetoothPrinting } = require('./bluetoothPrinter');
+
+// Initialize background services safely
+try {
+    initializeDDriveSnapshots();
+    initializePurchaseTracking();
+    initializeBluetoothPrinting();
+    console.log('[System] All custom background modules loaded successfully.');
+} catch (err) {
+    console.error('[System Error] Failed to initialize background modules:', err);
+}
+// --------------------------------

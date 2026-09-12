@@ -118,25 +118,27 @@ export default function App() {
   // ── Switch table (from active-table pill) ──────────────────
   const handleSwitchTable = useCallback(() => {
     playButtonPress();
-    // Save current cart to current table
-    if (activeTable !== null) {
-      setTableOrders(prev => ({ ...prev, [activeTable]: [...cart] }));
+    const ct = cartRef.current;
+    const at = activeTableRef.current;
+    if (at !== null) {
+      setTableOrders(prev => ({ ...prev, [at]: [...ct] }));
     }
     setScreen('table-select');
-  }, [activeTable, cart]);
+  }, []);
 
   // ── Switch to takeaway ────────────────────────────────────
   const handleSwitchToTakeaway = useCallback(() => {
     playButtonPress();
-    // Save current cart to current table
-    if (activeTable !== null) {
-      setTableOrders(prev => ({ ...prev, [activeTable]: [...cart] }));
+    const ct = cartRef.current;
+    const at = activeTableRef.current;
+    if (at !== null) {
+      setTableOrders(prev => ({ ...prev, [at]: [...ct] }));
     }
     setOrderType('takeaway');
     setActiveTable(null);
     setCart([]);
     setScreen('categories');
-  }, [activeTable, cart]);
+  }, []);
 
   // ── Cart operations with audit logging ──────────────────────
   const handleAddToCart = useCallback((item) => {
@@ -198,20 +200,34 @@ export default function App() {
     });
   }, []);
 
-  const handleCheckout = useCallback(
-    async (method) => {
-      if (cart.length === 0) return;
+  // Refs for stale closure prevention
+  const cartRef = useRef(cart);
+  const activeTableRef = useRef(activeTable);
+  const orderTypeRef = useRef(orderType);
+  useEffect(() => { cartRef.current = cart; }, [cart]);
+  useEffect(() => { activeTableRef.current = activeTable; }, [activeTable]);
+  useEffect(() => { orderTypeRef.current = orderType; }, [orderType]);
 
-      const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const handleCheckout = useCallback(
+    async (paymentOrMethod) => {
+      // Support both string ('cash') and object ({ method: 'credit', name, phone })
+      const method = typeof paymentOrMethod === 'object' ? paymentOrMethod.method : paymentOrMethod;
+      const creditInfo = typeof paymentOrMethod === 'object' ? paymentOrMethod : null;
+      const currentCart = cartRef.current;
+      const currentTable = activeTableRef.current;
+      const currentOrderType = orderTypeRef.current;
+      if (!currentCart || currentCart.length === 0) return;
+
+      const total = currentCart.reduce((sum, item) => sum + item.price * item.qty, 0);
       const now = new Date();
       const bill = {
-        items: [...cart],
+        items: [...currentCart],
         subtotal: total,
         total,
         originalTotal: total,
         paymentMethod: method,
-        orderType: orderType || 'takeaway',
-        tableNumber: activeTable || null,
+        orderType: currentOrderType || 'takeaway',
+        tableNumber: currentTable || null,
         date: now.toISOString().split('T')[0],
         time: now.toLocaleTimeString('en-IN', {
           hour: '2-digit',
@@ -219,6 +235,8 @@ export default function App() {
           hour12: true,
         }),
         timestamp: now.toISOString(),
+        creditName: creditInfo?.name || null,
+        creditPhone: creditInfo?.phone || null,
       };
 
       try {
@@ -247,7 +265,7 @@ export default function App() {
       cartSnapshotRef.current = null;
       activeBillAuditRef.current = [];
     },
-    [cart, activeTable, orderType]
+    []
   );
 
   const handleNewBill = useCallback(() => {
@@ -260,6 +278,17 @@ export default function App() {
     setActiveTable(null);
     setTableOrders({});
   }, []);
+
+  // ── Back to order from success screen ────────────────────
+  const handleBackToOrder = useCallback(() => {
+    playButtonPress();
+    if (lastBill) {
+      setCart(lastBill.items || []);
+    }
+    setScreen('categories');
+    setLastBill(null);
+    setLastPayment(null);
+  }, [lastBill]);
 
   const handleSelectCategory = useCallback((catId) => {
     playButtonPress();
@@ -465,10 +494,7 @@ export default function App() {
               bill={lastBill}
               paymentMethod={lastPayment}
               onNewBill={handleNewBill}
-              onViewReport={() => {
-                playButtonPress();
-                setScreen('report');
-              }}
+              onBackToOrder={handleBackToOrder}
             />
           )}
 

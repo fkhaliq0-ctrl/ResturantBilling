@@ -1,0 +1,8 @@
+{
+	"appId": "com.resturantbilling.app",
+	"appName": "ResturantBilling",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "http"
+	}
+}
