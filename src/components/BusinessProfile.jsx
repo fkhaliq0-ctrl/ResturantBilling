@@ -22,6 +22,8 @@ export default function BusinessProfile({ onBack }) {
     ifsc: '',
     logo: '/logo.png',
     logoUrl: '',
+    taxRate: '5',
+    taxInclusive: false,
   });
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef(null);
@@ -48,6 +50,8 @@ export default function BusinessProfile({ onBack }) {
         accountNo: loaded.accountNo || prev.accountNo,
         ifsc: loaded.ifsc || prev.ifsc,
         logoUrl: loaded.logoUrl || prev.logoUrl || '',
+        taxRate: loaded.taxRate || prev.taxRate || '5',
+        taxInclusive: loaded.taxInclusive ?? prev.taxInclusive ?? false,
       }));
     } catch (e) {
       console.error('Failed to load business profile:', e);
@@ -76,6 +80,8 @@ export default function BusinessProfile({ onBack }) {
         bankName: businessData.bankName,
         accountNo: businessData.accountNo,
         ifsc: businessData.ifsc,
+        taxRate: businessData.taxRate,
+        taxInclusive: businessData.taxInclusive,
       };
       localStorage.setItem('business_profile', JSON.stringify(saveData));
       setSaved(true);
@@ -192,6 +198,48 @@ export default function BusinessProfile({ onBack }) {
               <label className={labelCls}>FSSAI License No.</label>
               <input type="text" value={businessData.fssai} onChange={(e) => setBusinessData({...businessData, fssai: e.target.value})} placeholder="e.g. 23323004001056" className={inputCls} />
             </div>
+
+            <div className="border-t border-gray-700 pt-4">
+              <h3 className="text-sm font-bold text-amber-400 mb-3">💰 Tax Calculation</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Tax Rate (%)</label>
+                  <select value={businessData.taxRate} onChange={(e) => setBusinessData({...businessData, taxRate: e.target.value})}
+                    className={inputCls}>
+                    <option value="0">0% — No Tax</option>
+                    <option value="5">5% — Restaurant Services</option>
+                    <option value="12">12% — Packaged Food</option>
+                    <option value="18">18% — Standard GST</option>
+                    <option value="28">28% — Luxury Items</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Tax Pricing Mode</label>
+                  <div className="mt-1 flex rounded-lg overflow-hidden border border-gray-700">
+                    <button type="button" onClick={() => setBusinessData({...businessData, taxInclusive: false})}
+                      className={`flex-1 py-2.5 text-sm font-medium transition ${
+                        !businessData.taxInclusive ? 'bg-amber-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}>
+                      Exclusive
+                    </button>
+                    <button type="button" onClick={() => setBusinessData({...businessData, taxInclusive: true})}
+                      className={`flex-1 py-2.5 text-sm font-medium transition ${
+                        businessData.taxInclusive ? 'bg-amber-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}>
+                      Inclusive
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 p-3 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-400">
+                {businessData.taxInclusive ? (
+                  <>🏷️ <span className="text-amber-300 font-medium">Inclusive mode:</span> Item prices shown on menu already include {businessData.taxRate}% GST. Tax is extracted from the total at checkout.</>
+                ) : (
+                  <>🏷️ <span className="text-amber-300 font-medium">Exclusive mode:</span> {businessData.taxRate}% GST will be added on top of item prices at checkout.</>
+                )}
+              </div>
+            </div>
+
             <div className="p-3 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-400">
               💡 Enter your GSTIN and FSSAI numbers here. These will automatically appear on all invoices, receipts, and thermal prints.
             </div>
