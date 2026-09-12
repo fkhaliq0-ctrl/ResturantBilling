@@ -21,8 +21,9 @@
     "🛒 dev:persistent": "pm2 start ecosystem.config.cjs && pm2 logs mehfil-pos"
   },
   "dependencies": {
-    "@capacitor/android": "^8.5.1",
+    "@capacitor/android": "^8.5.2",
     "@capacitor/browser": "^8.0.4",
+    "@capacitor/cli": "^8.5.2",
     "@capgo/capacitor-updater": "^8.51.15",
     "@tailwindcss/vite": "^4.3.3",
     "@whiskeysockets/baileys": "^7.0.0-rc14",
