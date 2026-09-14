@@ -1,8 +1,9 @@
 {
   "appId": "com.resturantbilling.app",
-  "appName": "ResturantBilling",
+  "appName": "Mehfil-E-Nihari",
   "webDir": "dist",
   "server": {
-    "androidScheme": "http"
+    "url": "https://men-neon.vercel.app",
+    "cleartext": true
   }
 }
