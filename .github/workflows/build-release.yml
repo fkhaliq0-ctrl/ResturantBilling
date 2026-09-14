@@ -63,6 +63,8 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          git tag -d ${{ github.event.inputs.create_tag }} || true
+          git push origin --delete ${{ github.event.inputs.create_tag }} || true
           git tag -a ${{ github.event.inputs.create_tag }} -m "Release ${{ github.event.inputs.create_tag }}"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git push origin ${{ github.event.inputs.create_tag }}
