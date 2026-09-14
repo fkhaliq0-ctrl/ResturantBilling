@@ -3,7 +3,6 @@
 	"appName": "Mehfil-E-Nihari",
 	"webDir": "dist",
 	"server": {
-		"url": "https://men-neon.vercel.app",
-		"cleartext": true
+		"androidScheme": "https"
 	}
 }
