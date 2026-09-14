@@ -65,17 +65,21 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git tag -a ${{ github.event.inputs.create_tag }} -m "Release ${{ github.event.inputs.create_tag }}"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git push origin ${{ github.event.inputs.create_tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Release
+      - name: Create GitHub Release with APK
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: Mehfil-E-Nihari.apk
           generate_release_notes: true
           draft: false
           prerelease: false
+          tag_name: ${{ github.event.inputs.create_tag || github.ref_name }}
+          name: "Release ${{ github.event.inputs.create_tag || github.ref_name }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
