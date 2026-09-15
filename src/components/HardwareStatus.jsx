@@ -105,7 +105,15 @@ export default function HardwareStatus({ onBack }) {
     playButtonPress();
     if (!window.bluetoothSerial) { alert("Bluetooth printer plugin not available."); return; }
     var esc = "\x1B"; var LF = "\x0A";
-    var testReceipt = esc + "\x61\x01" + '================================\n' + '     MEHFIL-E-NIHARI POS\n' + '     TEST PRINT PAGE\n' + '================================\n\n' + '  Date: ' + new Date().toLocaleDateString('en-IN') + '\n' + '  Time: ' + new Date().toLocaleTimeString('en-IN') + '\n\n' + '  Bluetooth: OK\n' + '  Printer: Connected\n' + '  ESC/POS: Working\n\n' + '================================\n' + '   Printer test successful!\n' + '================================\n\n\n\n';
+    // Format date as DD/MM/YYYY
+    const formatDate = (date) => {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+    
+    var testReceipt = esc + "\x61\x01" + '================================\n' + '     MEHFIL-E-NIHARI POS\n' + '     TEST PRINT PAGE\n' + '================================\n\n' + '  Date: ' + formatDate(new Date()) + '\n' + '  Time: ' + new Date().toLocaleTimeString('en-IN') + '\n\n' + '  Bluetooth: OK\n' + '  Printer: Connected\n' + '  ESC/POS: Working\n\n' + '================================\n' + '   Printer test successful!\n' + '================================\n\n\n\n';
     window.bluetoothSerial.write(testReceipt, function() { addLog('Test page sent to printer'); playCheckoutSuccess(); },
       function(err) { addLog('Print failed: ' + JSON.stringify(err)); playErrorSound(); });
   };

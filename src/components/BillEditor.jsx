@@ -3,6 +3,16 @@ import { getBillById, updateBill } from '../utils/storage';
 import { logEdit, getBillAuditLogs, snapshotBill, sendAuditToWhatsApp } from '../utils/auditLog';
 import { playButtonPress, playRemoveSound, playCheckoutSuccess, playErrorSound } from '../utils/audio';
 
+// Format date as DD/MM/YYYY
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 const DEFAULT_OWNER_PHONE = '919999999999';
 
 export default function BillEditor({ bill: initialBill, onBack, onSaved }) {
@@ -154,8 +164,8 @@ export default function BillEditor({ bill: initialBill, onBack, onSaved }) {
         </button>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">✏️ Edit Bill #{bill.id || '—'}</h1>
-            <p className="text-gray-400 text-sm">{bill.date} • {bill.time}</p>
+            <h1 className="text-2xl font-bold text-white">✏️ Edit Bill #{bill.invoiceNumber || bill.id || '—'}</h1>
+            <p className="text-gray-400 text-sm">{formatDate(bill.date)} • {bill.time}</p>
           </div>
           {hasEdits && (
             <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold">

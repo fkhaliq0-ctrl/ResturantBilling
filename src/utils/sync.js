@@ -87,7 +87,7 @@ export async function flushOfflineQueue() {
   const queue = JSON.parse(localStorage.getItem('mehfil_outbox') || '[]');
   if (queue.length === 0) return;
 
-  const backendUrl = localStorage.getItem('mehfil_backend_url') || 'https://mehfil-pos-backend.onrender.com';
+  const backendUrl = localStorage.getItem('mehfil_backend_url') || 'https://men-neon.vercel.app';
   const remaining = [];
 
   for (const item of queue) {
@@ -136,7 +136,7 @@ export async function fullSyncAll() {
 
 // ── Full pull from backend ──────────────────────────────
 export async function fullPullAll() {
-  const backendUrl = localStorage.getItem('mehfil_backend_url') || 'https://mehfil-pos-backend.onrender.com';
+  const backendUrl = localStorage.getItem('mehfil_backend_url') || 'https://men-neon.vercel.app';
   const stores = ['bills', 'items', 'customers'];
   for (const store of stores) {
     try {

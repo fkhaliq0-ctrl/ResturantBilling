@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { playButtonPress, playCheckoutSuccess } from '../utils/audio';
 import { getAll } from '../utils/storage';
 
+// Format date as DD/MM/YYYY
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 export default function KitchenDisplay({ onBack }) {
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('all'); // all | pending | preparing | ready
@@ -33,7 +43,7 @@ export default function KitchenDisplay({ onBack }) {
   const loadOrders = async () => {
     try {
       const bills = await getAll('bills');
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatDate(new Date());
       const todayOrders = bills
         .filter(b => b.date === today && b.items?.length > 0)
         .map(b => ({

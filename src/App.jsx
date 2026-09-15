@@ -220,6 +220,21 @@ export default function App() {
 
       const total = currentCart.reduce((sum, item) => sum + item.price * item.qty, 0);
       const now = new Date();
+      
+      // Format date as DD/MM/YYYY
+      const formatDate = (date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+      
+      // Get business profile for invoice numbering
+      const businessProfile = JSON.parse(localStorage.getItem('business_profile') || '{}');
+      const invoicePrefix = businessProfile.invoicePrefix || 'MEN';
+      const nextInvoiceNo = businessProfile.nextInvoiceNo || '1001';
+      const invoiceNumber = `${invoicePrefix}-${nextInvoiceNo}`;
+      
       const bill = {
         items: [...currentCart],
         subtotal: total,
@@ -228,7 +243,7 @@ export default function App() {
         paymentMethod: method,
         orderType: currentOrderType || 'takeaway',
         tableNumber: currentTable || null,
-        date: now.toISOString().split('T')[0],
+        date: formatDate(now),
         time: now.toLocaleTimeString('en-IN', {
           hour: '2-digit',
           minute: '2-digit',
@@ -237,11 +252,19 @@ export default function App() {
         timestamp: now.toISOString(),
         creditName: creditInfo?.name || null,
         creditPhone: creditInfo?.phone || null,
+        invoiceNumber: invoiceNumber,
+        invoicePrefix: invoicePrefix,
       };
 
       try {
         const billId = await saveBill(bill);
         bill.id = billId;
+        
+        // Increment invoice number in business profile
+        const businessProfile = JSON.parse(localStorage.getItem('business_profile') || '{}');
+        const currentInvoiceNo = parseInt(businessProfile.nextInvoiceNo || '1001');
+        businessProfile.nextInvoiceNo = String(currentInvoiceNo + 1);
+        localStorage.setItem('business_profile', JSON.stringify(businessProfile));
       } catch {
         bill.id = 'local-' + Date.now();
       }

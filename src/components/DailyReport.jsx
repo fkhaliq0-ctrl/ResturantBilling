@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { getTodayBills, getAllBills } from '../utils/storage';
 import { playButtonPress } from '../utils/audio';
 
+// Format date as DD/MM/YYYY
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 export default function DailyReport({ onBack, onEditBill }) {
   const [bills, setBills] = useState([]);
   const [view, setView] = useState('today');
@@ -107,7 +117,7 @@ export default function DailyReport({ onBack, onEditBill }) {
             >
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <span className="text-white font-bold text-lg">#{bill.id || '—'}</span>
+                  <span className="text-white font-bold text-lg">#{bill.invoiceNumber || bill.id || '—'}</span>
                   <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-bold ${
                     bill.paymentMethod === 'cash'
                       ? 'bg-green-500/20 text-green-400'
@@ -128,7 +138,7 @@ export default function DailyReport({ onBack, onEditBill }) {
                   ✏️ Edit / Void
                 </button>
               )}
-              <p className="text-gray-400 text-sm">{bill.time}</p>
+              <p className="text-gray-400 text-sm">{formatDate(bill.date)} {bill.time}</p>
               <div className="flex flex-wrap gap-1 mt-2">
                 {bill.items.map((item, idx) => (
                   <span

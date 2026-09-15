@@ -17,11 +17,23 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
     try { setProfile(loadBusinessProfileSync()); } catch (e) { console.error(e); }
   }, []);
 
-  const billId = String(bill?.id ?? "\u2014");
+  const billId = String((bill?.invoiceNumber ?? bill?.id) ?? "\u2014");
   const billItems = bill?.items || [];
   const subtotal = bill?.subtotal || bill?.originalTotal || bill?.total || 0;
   const discountAmount = discountType === "percent" ? Math.round(subtotal * (discountValue / 100)) : Math.min(subtotal, discountValue);
   const finalTotal = Math.max(0, subtotal - discountAmount);
+  
+  // Format date as DD/MM/YYYY
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+  
+  const formattedDate = bill?.date ? formatDate(bill.date) : formatDate(new Date());
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
@@ -105,7 +117,7 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
       </div>
 
       <div className="bg-slate-800 rounded-2xl p-4 mb-3 space-y-2 border border-slate-700">
-        <div className="flex justify-between text-sm text-gray-300"><span>Bill #{billId}</span><span>{bill?.date}</span></div>
+        <div className="flex justify-between text-sm text-gray-300"><span>Bill #{billId}</span><span>{formattedDate}</span></div>
         <div className="border-t border-slate-700 my-1"></div>
         <div className="space-y-1">
           {billItems.map(function(item, idx) {

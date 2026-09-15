@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { generateOwnerReport, isOwnerPinSet, setOwnerPin, verifyOwnerPin, STOCK_ITEMS } from '../utils/stock';
 import { playButtonPress, playCheckoutSuccess, playErrorSound, playKeyPress } from '../utils/audio';
 
+// Format date as DD/MM/YYYY
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 export default function OwnerReport({ onBack }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [pinMode, setPinMode] = useState(null); // 'verify', 'setup', 'confirm'
@@ -10,7 +20,7 @@ export default function OwnerReport({ onBack }) {
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
 
-  const [date] = useState(() => new Date().toISOString().split('T')[0]);
+  const [date] = useState(() => formatDate(new Date()));
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('stock'); // stock, financial, consumption
