@@ -1,5 +1,19 @@
 {
-  "android": {
-    "package": "com.fkhaliq.resturantbilling"
-  }
+    "expo":  {
+                 "name":  "MEN",
+                 "slug":  "mehfil-e-nihari",
+                 "version":  "1.0.0",
+                 "android":  {
+                                 "package":  "com.fkhaliq.mehfilenihari",
+                                 "adaptiveIcon":  {
+                                                      "foregroundImage":  "./assets/icon.ico",
+                                                      "backgroundColor":  "#ffffff"
+                                                  }
+                             },
+                 "extra":  {
+                               "eas":  {
+                                           "projectId":  "435353a3-8adf-44f4-99f8-325317b7220f"
+                                       }
+                           }
+             }
 }
