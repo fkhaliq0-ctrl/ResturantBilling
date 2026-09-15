@@ -29,16 +29,11 @@ steps:
     with:
       node-version: '22'
 
-  - name: Install Dependencies & Build Web Assets
-    run: |
-      npm install
-      npm run build
-      mkdir -p www
-      if [ -d "dist" ]; then rm -rf www/* && cp -R dist/. www/; elif [ -d "build" ]; then rm -rf www/* && cp -R build/. www/; else echo "Build dir missing" && exit 1; fi
+  - name: Install Dependencies
+    run: npm install
 
   - name: Sync Android Platform
-    run: |
-      npx cap sync android
+    run: npx cap sync android
 
   - name: Build Android Release APK
     run: |
