@@ -1,9 +1,1 @@
-{
-  "appId": "com.restaurantbilling.app",
-  "appName": "Mehfil-E-Nihari",
-  "webDir": "dist",
-  "server": {
-    "url": "https://men-neon.vercel.app",
-    "cleartext": true
-  }
-}
+﻿{`n  "appId": "com.mehfil.nihari",`n  "appName": "Mehfil-E-Nihari",`n  "webDir": "dist",`n  "server": {`n    "url": "https://men.vercel.app",`n    "cleartext": true`n  }`n}
