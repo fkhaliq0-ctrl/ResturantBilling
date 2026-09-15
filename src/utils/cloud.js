@@ -1,6 +1,4 @@
-// Cloud Database Integration via Firebase Firestore
-// Multi-device real-time sync for bills, purchases, audit logs, closing stock
-
+// Cloud Database Integration via Firebase Firestore (Hardcoded Config for Zero-Dependency Production)
 import { initializeApp } from 'firebase/app';
 import {
   getFirestore, collection, doc, setDoc, getDoc, getDocs,
@@ -9,8 +7,17 @@ import {
 } from 'firebase/firestore';
 import { getSetting, setSetting } from './storage';
 
-// ── Firebase config keys in settings ─────────────────────────
-const CONFIG_KEY = 'firebase_config';
+// ── Hardcoded Firebase Configuration ─────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCiUYtEYSDFwbed5t6NRbu_GtLs4h9WpaM",
+  authDomain: "mehfil-e-nihari-pos.firebaseapp.com",
+  projectId: "mehfil-e-nihari-pos",
+  storageBucket: "mehfil-e-nihari-pos.firebasestorage.app",
+  messagingSenderId: "537736992775",
+  appId: "1:537736992775:web:7b01b33a20df0aa3e232a2",
+  measurementId: "G-HE3YF55PH2"
+};
+
 const SYNC_ENABLED_KEY = 'cloud_sync_enabled';
 
 let app = null;
@@ -19,38 +26,31 @@ let listeners = {};
 let isConnected = false;
 let connectionChangeCallbacks = [];
 
-// ── Get / Save Firebase config ───────────────────────────────
 export async function getFirebaseConfig() {
-  return getSetting(CONFIG_KEY);
+  return firebaseConfig;
 }
 
 export async function saveFirebaseConfig(config) {
-  await setSetting(CONFIG_KEY, config);
+  // no-op since it's hardcoded
 }
 
 export async function isSyncEnabled() {
-  const val = await getSetting(SYNC_ENABLED_KEY);
-  return val === true || val === 'true';
+  return true; // Force-enabled for zero local IP setup
 }
 
 export async function setSyncEnabled(enabled) {
   await setSetting(SYNC_ENABLED_KEY, enabled);
 }
 
-// ── Initialize Firebase from stored config ───────────────────
+// ── Initialize Firebase ──────────────────────────────────────
 export async function initCloud() {
-  const config = await getFirebaseConfig();
-  if (!config) return false;
-
   try {
     if (!app) {
-      app = initializeApp(config);
+      app = initializeApp(firebaseConfig);
       db = getFirestore(app);
-      // Enable offline persistence for local fallback
       try {
         await enableIndexedDbPersistence(db);
       } catch (err) {
-        // Persistence may already be enabled or tab conflict
         console.log('Persistence:', err.message);
       }
     }
@@ -65,10 +65,9 @@ export async function initCloud() {
 export async function testConnection() {
   if (!db) {
     const ok = await initCloud();
-    if (!ok) return { ok: false, error: 'No Firebase config found' };
+    if (!ok) return { ok: false, error: 'Firebase initialization failed' };
   }
   try {
-    // Try to read a test doc
     const testRef = doc(db, '_system', 'ping');
     await setDoc(testRef, { timestamp: serverTimestamp(), test: true });
     return { ok: true, message: 'Connected to Firestore' };
@@ -78,7 +77,6 @@ export async function testConnection() {
 }
 
 // ── CRUD Operations ──────────────────────────────────────────
-// Collection name mapping: IndexedDB store → Firestore collection
 const COLLECTION_MAP = {
   bills: 'bills',
   purchases: 'purchases',
@@ -90,12 +88,11 @@ const COLLECTION_MAP = {
 async function ensureDb() {
   if (!db) {
     const ok = await initCloud();
-    if (!ok) throw new Error('Cloud not configured');
+    if (!ok) throw new Error('Cloud not initialized');
   }
   return db;
 }
 
-// Save a single document
 export async function cloudSave(storeName, id, data) {
   const database = await ensureDb();
   const colName = COLLECTION_MAP[storeName] || storeName;
@@ -108,7 +105,6 @@ export async function cloudSave(storeName, id, data) {
   return true;
 }
 
-// Save multiple documents (batch)
 export async function cloudSaveBatch(storeName, items) {
   const database = await ensureDb();
   const colName = COLLECTION_MAP[storeName] || storeName;
@@ -123,7 +119,6 @@ export async function cloudSaveBatch(storeName, items) {
   return true;
 }
 
-// Get a single document
 export async function cloudGet(storeName, id) {
   const database = await ensureDb();
   const colName = COLLECTION_MAP[storeName] || storeName;
@@ -132,7 +127,6 @@ export async function cloudGet(storeName, id) {
   return snap.exists() ? snap.data() : null;
 }
 
-// Get all documents in a collection
 export async function cloudGetAll(storeName) {
   const database = await ensureDb();
   const colName = COLLECTION_MAP[storeName] || storeName;
@@ -141,7 +135,6 @@ export async function cloudGetAll(storeName) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-// Delete a document
 export async function cloudDelete(storeName, id) {
   const database = await ensureDb();
   const colName = COLLECTION_MAP[storeName] || storeName;
@@ -152,7 +145,6 @@ export async function cloudDelete(storeName, id) {
 
 // ── Real-time listener ───────────────────────────────────────
 export function subscribeToCollection(storeName, callback) {
-  // Clean up existing listener
   if (listeners[storeName]) {
     listeners[storeName]();
   }
@@ -183,7 +175,6 @@ export function subscribeToCollection(storeName, callback) {
   return unsubscribe;
 }
 
-// Unsubscribe from all listeners
 export function unsubscribeAll() {
   Object.values(listeners).forEach((unsub) => {
     if (typeof unsub === 'function') unsub();
@@ -191,7 +182,6 @@ export function unsubscribeAll() {
   listeners = {};
 }
 
-// ── Connection status ────────────────────────────────────────
 export function isCloudConnected() {
   return isConnected;
 }
@@ -203,7 +193,6 @@ export function onConnectionChange(callback) {
   };
 }
 
-// ── Full sync: push all local data to cloud ──────────────────
 export async function fullSyncToCloud(stores) {
   const results = {};
   for (const storeName of stores) {
@@ -221,7 +210,6 @@ export async function fullSyncToCloud(stores) {
   return results;
 }
 
-// ── Pull cloud data into local IndexedDB ─────────────────────
 export async function pullFromCloud(stores) {
   const results = {};
   for (const storeName of stores) {
@@ -240,7 +228,6 @@ export async function pullFromCloud(stores) {
   return results;
 }
 
-// ── Device ID (for tracking which device made changes) ────────
 export function getDeviceId() {
   let id = localStorage.getItem('device_id');
   if (!id) {
