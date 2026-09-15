@@ -33,10 +33,11 @@ window.bluetoothSerial.isConnected(
 });
 }
 
-// ── Explicitly request Android 12+ Runtime Permissions ───────────────
+// ── Explicitly request Android 12+ Runtime Permissions with Alerts ───
 export function requestBluetoothPermissions() {
 return new Promise((resolve) => {
 if (!window.cordova || !window.cordova.plugins || !window.cordova.plugins.permissions) {
+  console.warn('Cordova permissions plugin not found, skipping runtime prompt.');
   return resolve(true);
 }
 const permissions = window.cordova.plugins.permissions;
@@ -45,15 +46,21 @@ const list = [
   'android.permission.BLUETOOTH_CONNECT',
   'android.permission.ACCESS_FINE_LOCATION'
 ];
+
 permissions.requestPermissions(
   list,
-  (status) => resolve(status.hasPermission),
-  () => resolve(false)
+  (status) => {
+    console.log('Permission status:', status);
+    resolve(status.hasPermission);
+  },
+  (err) => {
+    console.error('Permission error:', err);
+    resolve(false);
+  }
 );
 });
 }
 
-// ── List paired devices with runtime permission check ────────────────
 export async function listPairedDevices() {
 await requestBluetoothPermissions();
 return new Promise((resolve, reject) => {
