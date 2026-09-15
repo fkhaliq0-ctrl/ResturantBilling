@@ -62,10 +62,26 @@ export default function PrinterModal({ isOpen, onClose, onConnected }) {
   const handleConnect = async (device) => {
     setLoading(true);
     setMessage(`Connecting to ${device.name || device.address}...`);
+    
+    const tryConnect = () =>
+      new Promise((res, rej) => {
+        window.bluetoothSerial.connect(
+          device.address,
+          () => res(true),
+          () => {
+            window.bluetoothSerial.connectInsecure(
+              device.address,
+              () => res(true),
+              (err) => rej(err)
+            );
+          }
+        );
+      });
+
     try {
-      await CALL_METHOD("connect", device.address);
+      await tryConnect();
       localStorage.setItem("printer_device", JSON.stringify(device));
-      setMessage("Printer connected successfully!");
+      setMessage("✅ Printer connected successfully!");
       setLoading(false);
       if (onConnected) onConnected(device);
       setTimeout(() => {
@@ -73,7 +89,7 @@ export default function PrinterModal({ isOpen, onClose, onConnected }) {
       }, 1000);
     } catch (err) {
       setLoading(false);
-      setMessage("Connection failed. Make sure the printer is turned on.");
+      setMessage("❌ Connection failed. Make sure the printer is turned on.");
     }
   };
 
