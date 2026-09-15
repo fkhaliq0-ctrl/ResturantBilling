@@ -27,6 +27,7 @@
         "@capacitor/core": "^8.5.2",
         "@capgo/capacitor-updater": "^8.51.15",
         "@tailwindcss/vite": "^4.3.3",
+        "cordova-plugin-android-permissions": "^1.1.5",
         "cordova-plugin-bluetooth-serial": "^0.4.7",
         "expo": "^57.0.22",
         "firebase": "^12.18.0",

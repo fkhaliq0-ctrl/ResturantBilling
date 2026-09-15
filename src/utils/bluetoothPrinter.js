@@ -1,8 +1,4 @@
 ﻿// ── Native Bluetooth ESC/POS Thermal Printer Module ──────────────────
-// Provides clean API for connecting and printing to thermal printers
-// via cordova-plugin-bluetooth-serial (Capacitor) on Android
-
-// ── ESC/POS Command Helpers ──────────────────────────────────────────
 const ESC = '\x1B';
 const GS = '\x1D';
 const LF = '\x0A';
@@ -23,12 +19,10 @@ FEED_LINES(n) { return GS + '\x66' + String.fromCharCode(n); },
 INIT: ESC + '\x40',
 };
 
-// ── Check if Bluetooth is available ──────────────────
 export function isBluetoothAvailable() {
 return !!window.bluetoothSerial;
 }
 
-// ── Check connection status ──────────────────────────────────────────
 export function isConnected() {
 return new Promise((resolve) => {
 if (!window.bluetoothSerial) return resolve(false);
@@ -39,12 +33,32 @@ window.bluetoothSerial.isConnected(
 });
 }
 
-// ── List paired devices with permission check ────────────────────────
-export function listPairedDevices() {
+// ── Explicitly request Android 12+ Runtime Permissions ───────────────
+export function requestBluetoothPermissions() {
+return new Promise((resolve) => {
+if (!window.cordova || !window.cordova.plugins || !window.cordova.plugins.permissions) {
+  return resolve(true);
+}
+const permissions = window.cordova.plugins.permissions;
+const list = [
+  'android.permission.BLUETOOTH_SCAN',
+  'android.permission.BLUETOOTH_CONNECT',
+  'android.permission.ACCESS_FINE_LOCATION'
+];
+permissions.requestPermissions(
+  list,
+  (status) => resolve(status.hasPermission),
+  () => resolve(false)
+);
+});
+}
+
+// ── List paired devices with runtime permission check ────────────────
+export async function listPairedDevices() {
+await requestBluetoothPermissions();
 return new Promise((resolve, reject) => {
 if (!window.bluetoothSerial) return reject(new Error('Bluetooth plugin not available'));
 
-// Ensure bluetooth/permissions are active and trigger system prompt
 window.bluetoothSerial.enable(
   () => {
     window.bluetoothSerial.list(
@@ -57,7 +71,6 @@ window.bluetoothSerial.enable(
 });
 }
 
-// ── Connect to a device ──────────────────────────────────────────────
 export function connectToDevice(address) {
 return new Promise((resolve, reject) => {
 if (!window.bluetoothSerial) return reject(new Error('Bluetooth plugin not available'));
@@ -73,7 +86,6 @@ window.bluetoothSerial.connect(address,
 });
 }
 
-// ── Auto-connect to first paired printer ─────────────────────────────
 export async function autoConnect() {
 const devices = await listPairedDevices();
 if (devices.length === 0) throw new Error('No paired Bluetooth devices found');
@@ -82,7 +94,6 @@ await connectToDevice(printer.address);
 return printer.name || printer.address;
 }
 
-// ── Send raw data to printer ─────────────────────────────────────────
 export function sendData(data) {
 return new Promise((resolve, reject) => {
 if (!window.bluetoothSerial) return reject(new Error('Bluetooth plugin not available'));
@@ -93,7 +104,6 @@ window.bluetoothSerial.write(data,
 });
 }
 
-// ── Build receipt data ───────────────────────────────────────────────
 export function buildReceipt({ profile, bill, billId, discount }) {
 let r = '';
 r += Commands.INIT;
@@ -140,7 +150,6 @@ r += Commands.CUT_PAPER;
 return r;
 }
 
-// ── Print receipt (connect if needed) ────────────────────────────────
 export async function printReceipt(receiptData) {
 const connected = await isConnected();
 if (!connected) {
@@ -150,7 +159,6 @@ await sendData(receiptData);
 return true;
 }
 
-// ── Disconnect ───────────────────────────────────────────────────────
 export function disconnect() {
 return new Promise((resolve) => {
 if (!window.bluetoothSerial) return resolve(true);
