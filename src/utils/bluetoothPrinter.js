@@ -33,7 +33,34 @@ window.bluetoothSerial.isConnected(
 });
 }
 
+// Explicitly prompt for Android 12+ permissions before executing native calls
+export async function requestBluetoothPermissions() {
+return new Promise((resolve, reject) => {
+if (window.cordova && window.cordova.plugins && window.cordova.plugins.permissions) {
+  const permissions = [
+    "android.permission.BLUETOOTH_SCAN",
+    "android.permission.BLUETOOTH_CONNECT"
+  ];
+  window.cordova.plugins.permissions.requestPermissions(
+    permissions,
+    (status) => {
+      if (status.hasPermission) {
+        resolve(true);
+      } else {
+        reject(new Error("Bluetooth runtime permissions denied by user."));
+      }
+    },
+    (err) => reject(new Error("Failed to request permissions: " + JSON.stringify(err)))
+  );
+} else {
+  // Non-Cordova or browser environment, skip gracefully
+  resolve(true);
+}
+});
+}
+
 export async function listPairedDevices() {
+await requestBluetoothPermissions();
 return new Promise((resolve, reject) => {
 if (!window.bluetoothSerial) return reject(new Error('Bluetooth plugin not available'));
 
@@ -67,7 +94,12 @@ window.bluetoothSerial.connect(address,
 export async function autoConnect() {
 const devices = await listPairedDevices();
 if (devices.length === 0) throw new Error('No paired Bluetooth devices found');
-const printer = devices[0];
+
+// Filter specifically for your thermal printer name
+const printer = devices.find(d => 
+d.name && (d.name.toLowerCase().includes('printer') || d.name.toLowerCase().includes('pos') || d.name.toLowerCase().includes('blue'))
+) || devices[0];
+
 await connectToDevice(printer.address);
 return printer.name || printer.address;
 }
