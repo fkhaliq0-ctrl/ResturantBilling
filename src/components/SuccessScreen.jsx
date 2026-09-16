@@ -11,13 +11,14 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
   const [customerName, setCustomerName] = useState("");
   const [showCustomer, setShowCustomer] = useState(false);
   const [toast, setToast] = useState("");
-  const [profile, setProfile] = useState({ name: "MEHFIL-E-NIHARI", address: "12A/107, Main Road, Opp metro Pillar No 196, Maujpur, Delhi - 110053", phone: "+91 9990515151", gst: "07ABXFM3984H1ZG" });
+  const [profile, setProfile] = useState({ name: "MEHFIL-E-NIHARI", address: "12A/107, Main Road, Opp metro Pillar No 196, Maujpur, Delhi - 110053", phone: "+91 9990515151", gst: "07ABXFM3984H1ZG", fssai: "23323004001056" });
 
   useEffect(() => {
     try { setProfile(loadBusinessProfileSync()); } catch (e) { console.error(e); }
   }, []);
 
   const billId = String((bill?.invoiceNumber ?? bill?.id) ?? "\u2014");
+  const tableLabel = bill?.orderType === 'takeaway' || !bill?.tableNumber ? 'Parcel' : 'Table ' + bill.tableNumber;
   const billItems = bill?.items || [];
   const subtotal = bill?.subtotal || bill?.originalTotal || bill?.total || 0;
   const discountAmount = discountType === "percent" ? Math.round(subtotal * (discountValue / 100)) : Math.min(subtotal, discountValue);
@@ -66,6 +67,7 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
       r += "--------------------------------" + LF + esc + "\x61\x00";
       r += "Bill: #" + billId + LF;
       r += "Date: " + (bill?.date || "") + " " + (bill?.time || "") + LF;
+      r += "Order: " + tableLabel + LF;
       r += "--------------------------------" + LF;
       billItems.forEach(function(i) {
         var nm = (i.name + " (" + (i.portion || "Regular") + ")").substring(0, 16);
@@ -73,11 +75,12 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
         r += nm + " x" + i.qty + "  Rs." + (i.price * i.qty) + LF;
       });
       r += "--------------------------------" + LF;
-      r += "Subtotal: Rs." + subtotal + LF;
-      if (discountAmount > 0) r += "Discount: -Rs." + discountAmount + LF;
-      r += esc + "\x45\x01" + "TOTAL: Rs." + finalTotal + esc + "\x45\x00" + LF;
+      r += "Subtotal:".padEnd(20) + "Rs." + subtotal + LF;
+      if (discountAmount > 0) r += "Discount:".padEnd(20) + "-Rs." + discountAmount + LF;
+      r += esc + "\x45\x01" + "TOTAL:".padEnd(18) + "Rs." + finalTotal + esc + "\x45\x00" + LF;
       r += "--------------------------------" + LF;
-      r += esc + "\x61\x01" + "Thank you! Visit us again" + LF + LF + LF;
+      r += esc + "\x61\x01" + "Thank you! Visit us again" + LF + LF;
+      if (profile.fssai || profile.fssaiNumber) r += "FSSAI: " + (profile.fssai || profile.fssaiNumber) + LF + LF;
       window.bluetoothSerial.write(r, function() { playCheckoutSuccess(); setPrinting(false); handleSaveCustomer(); },
         function(err) { playErrorSound(); setPrinting(false); alert("Print failed: " + JSON.stringify(err)); });
     } else {
@@ -90,16 +93,15 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
       html += '.logo{text-align:center;margin-bottom:8px;}';
       html += '.logo img{max-width:160px;height:auto;}'
       html += '.center{text-align:center;}'
-      html += '.row{display:flex;justify-content:space-between;padding:2px 0;}'
-      html += '.row-total{display:flex;justify-content:space-between;padding:4px 0;font-size:16px;font-weight:bold;border-top:2px solid #000;margin-top:4px;padding-top:6px;}'
+      html += '.row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;}'
+      html += '.row-total{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:16px;font-weight:bold;border-top:2px solid #000;margin-top:4px;padding-top:6px;}'
       html += '.row-right{display:flex;justify-content:flex-end;gap:12px;}'
       html += '</style></head><body>';
       if (logoUrl) html += '<div class="logo"><img src="' + logoUrl + '" alt="Logo" onerror="this.style.display=\'none\'" /></div>';
       html += '<h2>' + (profile.name || "MEHFIL-E-NIHARI") + '</h2>';
       html += '<p class="center" style="font-size:12px;">' + (profile.address || "") + '</p>';
       if (profile.city || profile.state) html += '<p class="center" style="font-size:11px;">' + (profile.city || '') + (profile.city && profile.state ? ', ' : '') + (profile.state || '') + '</p>';
-      html += '<p class="center">Phone: ' + (profile.phone || "") + ' | GSTIN: ' + (profile.gst || "") + '</p><hr>';
-      html += '<p>Bill #' + billId + ' | ' + (bill?.date || "") + ' ' + (bill?.time || "") + '</p><hr>';
+      html += '<p class="center">Phone: ' + (profile.phone || "") + ' | GSTIN: ' + (profile.gst || "") + '</p><hr>';      html += '<p>Bill #' + billId + ' | ' + tableLabel + ' | ' + (bill?.date || "") + ' ' + (bill?.time || "") + '</p><hr>';
       billItems.forEach(function(i) { html += '<div class="row"><span>' + i.name + ' (' + (i.portion || "Regular") + ') x' + i.qty + '</span><span>Rs.' + (i.price * i.qty) + '</span></div>'; });
       html += '<hr>';
       html += '<div class="row"><span>Subtotal</span><span>Rs.' + subtotal + '</span></div>';
@@ -117,7 +119,7 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
   const handleWhatsApp = () => {
     playButtonPress(); handleSaveCustomer();
     var itemsText = billItems.map(function(i) { return i.name + " (" + (i.portion || "Regular") + ") x" + i.qty + " = Rs." + (i.price * i.qty); }).join("%0A");
-    var msg = encodeURIComponent("*" + (profile.name || "MEHFIL-E-NIHARI") + "*%0A" + (profile.address || "") + "%0APhone: " + (profile.phone || "") + "%0A%0ABill #: " + billId + "%0ADate: " + (bill?.date || "") + " " + (bill?.time || "") + "%0A%0A" + itemsText + "%0A%0ASubtotal: Rs." + subtotal + "%0A" + (discountAmount > 0 ? "Discount: -Rs." + discountAmount + "%0A" : "") + "*TOTAL: Rs." + finalTotal + "*%0A%0AThank you! Visit us again");
+    var msg = encodeURIComponent("*" + (profile.name || "MEHFIL-E-NIHARI") + "*%0A" + (profile.address || "") + "%0APhone: " + (profile.phone || "") + "%0A%0ABill #: " + billId + "%0A" + tableLabel + "%0ADate: " + (bill?.date || "") + " " + (bill?.time || "") + "%0A%0A" + itemsText + "%0A%0ASubtotal: Rs." + subtotal + "%0A" + (discountAmount > 0 ? "Discount: -Rs." + discountAmount + "%0A" : "") + "*TOTAL: Rs." + finalTotal + "*%0A%0AThank you! Visit us again");
     var phone = customerPhone ? (customerPhone.startsWith("91") ? customerPhone : "91" + customerPhone) : "";
     window.open(phone ? "https://wa.me/" + phone + "?text=" + msg : "https://wa.me/?text=" + msg, "_blank");
     showToast("Opening WhatsApp...");
@@ -144,6 +146,7 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
 
       <div className="bg-slate-800 rounded-2xl p-4 mb-3 space-y-2 border border-slate-700">
         <div className="flex justify-between text-sm text-gray-300"><span>Bill #{billId}</span><span>{formattedDate}</span></div>
+        <div className="flex justify-between text-sm text-gray-400"><span>{tableLabel}</span><span>{bill?.time || ''}</span></div>
         <div className="border-t border-slate-700 my-1"></div>
         <div className="space-y-1">
           {billItems.map(function(item, idx) {

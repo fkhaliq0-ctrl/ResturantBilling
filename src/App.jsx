@@ -35,6 +35,8 @@ import { CATEGORIES, DEFAULT_ITEMS } from './utils/menuData';
 import { saveMenuItems, getMenuItems, saveBill } from './utils/storage';
 import { playButtonPress, playCheckoutSuccess } from './utils/audio';
 import { logEdit, snapshotBill } from './utils/auditLog';
+import { getNextInvoiceNumber } from './utils/cloud';
+import { logSale } from './utils/salesLog';
 
 export default function App() {
   const [unlocked, setUnlocked] = useState(false);
@@ -229,11 +231,23 @@ export default function App() {
         return `${day}/${month}/${year}`;
       };
       
-      // Get business profile for invoice numbering
-      const businessProfile = JSON.parse(localStorage.getItem('business_profile') || '{}');
-      const invoicePrefix = businessProfile.invoicePrefix || 'MEN';
-      const nextInvoiceNo = businessProfile.nextInvoiceNo || '1001';
-      const invoiceNumber = `${invoicePrefix}-${nextInvoiceNo}`;
+      // Get next invoice number from Firestore with fallback to local
+      let invoiceNumber;
+      try {
+        const invoiceData = await getNextInvoiceNumber();
+        invoiceNumber = invoiceData.invoiceNumber;
+      } catch (error) {
+        console.error('Failed to get invoice number from Firestore, using fallback:', error);
+        // Fallback to local storage
+        const businessProfile = JSON.parse(localStorage.getItem('business_profile') || '{}');
+        const invoicePrefix = businessProfile.invoicePrefix || 'MEN';
+        const nextInvoiceNo = businessProfile.nextInvoiceNo || '1001';
+        invoiceNumber = `${invoicePrefix}-${nextInvoiceNo}`;
+        
+        // Update local storage
+        businessProfile.nextInvoiceNo = String(parseInt(nextInvoiceNo) + 1);
+        localStorage.setItem('business_profile', JSON.stringify(businessProfile));
+      }
       
       const bill = {
         items: [...currentCart],
@@ -243,6 +257,7 @@ export default function App() {
         paymentMethod: method,
         orderType: currentOrderType || 'takeaway',
         tableNumber: currentTable || null,
+        tableNo: currentTable ? 'Table ' + currentTable : 'Parcel',
         date: formatDate(now),
         time: now.toLocaleTimeString('en-IN', {
           hour: '2-digit',
@@ -253,18 +268,32 @@ export default function App() {
         creditName: creditInfo?.name || null,
         creditPhone: creditInfo?.phone || null,
         invoiceNumber: invoiceNumber,
-        invoicePrefix: invoicePrefix,
       };
 
       try {
         const billId = await saveBill(bill);
         bill.id = billId;
         
-        // Increment invoice number in business profile
-        const businessProfile = JSON.parse(localStorage.getItem('business_profile') || '{}');
-        const currentInvoiceNo = parseInt(businessProfile.nextInvoiceNo || '1001');
-        businessProfile.nextInvoiceNo = String(currentInvoiceNo + 1);
-        localStorage.setItem('business_profile', JSON.stringify(businessProfile));
+        // Log the sale to the sales log engine
+        try {
+          logSale({
+            id: bill.id,
+            invoiceNumber: bill.invoiceNumber,
+            total: bill.total,
+            paymentMethod: bill.paymentMethod,
+            items: bill.items,
+            customerName: bill.creditName,
+            customerPhone: bill.creditPhone,
+            tableNumber: bill.tableNumber,
+            tableNo: bill.tableNo,
+            orderType: bill.orderType,
+            date: bill.date,
+            timestamp: bill.timestamp
+          });
+        } catch (logError) {
+          console.error('Failed to log sale:', logError);
+          // Don't fail the checkout if sales logging fails
+        }
       } catch {
         bill.id = 'local-' + Date.now();
       }
