@@ -1,32 +1,34 @@
-﻿const fs = require('fs');
-const path = require('path');
+﻿import fs from 'fs';
+import path from 'path';
 
-function initializeDDriveSnapshots() {
-    const backupDir = 'D:\\ResturantBilling_Backups';
-    const sourceDir = 'E:\\ResturantBilling';
+export function runDDriveBackup() {
+  const sourceDir = path.join(process.cwd(), 'data');
+  const targetDir = 'D:\\ResturantBilling\\backups';
 
-    if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true });
-        console.log('[Backup Engine] Created D-Drive backup directory.');
+  try {
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    // Run snapshot every 30 minutes
-    setInterval(() => {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const targetFolder = path.join(backupDir, `snapshot_${timestamp}`);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupSubDir = path.join(targetDir, 'backup-' + timestamp);
+    fs.mkdirSync(backupSubDir, { recursive: true });
 
-        try {
-            // Simple recursive folder copy for local D-drive snapshot
-            fs.mkdirSync(targetFolder, { recursive: true });
-            
-            // Exclude heavy node_modules if needed, or mirror essential db/config files
-            console.log(`[Backup Engine] 30-minute snapshot successfully saved to ${targetFolder}`);
-        } catch (error) {
-            console.error('[Backup Engine Error] Failed to create D-Drive snapshot:', error);
-        }
-    }, 30 * 60 * 1000);
-
-    console.log('[Backup Engine] Dual-storage 30-minute snapshot service initialized.');
+    if (fs.existsSync(sourceDir)) {
+      fs.cpSync(sourceDir, backupSubDir, { recursive: true });
+      console.log('Backup successfully created at: ' + backupSubDir);
+      return true;
+    } else {
+      console.log('Source data directory not found, skipping local backup.');
+      return false;
+    }
+  } catch (error) {
+    console.error('Failed to execute D:\\ drive backup:', error);
+    return false;
+  }
 }
 
-module.exports = { initializeDDriveSnapshots };
+// Only run directly if this file is executed directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runDDriveBackup();
+}

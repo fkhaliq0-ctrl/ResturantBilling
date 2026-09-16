@@ -95,9 +95,31 @@ export default function BusinessProfile({ onBack }) {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setBusinessData(prev => ({ ...prev, logo: reader.result, logoUrl: '' }));
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 250; // Constrain width for thermal receipt printing and storage limits
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress down to a lightweight data URL preventing local storage overflow
+        const compressedDataUrl = canvas.toDataURL('image/png', 0.8);
+        setBusinessData(prev => ({ ...prev, logo: compressedDataUrl, logoUrl: '' }));
+      };
     };
     reader.readAsDataURL(file);
   };
