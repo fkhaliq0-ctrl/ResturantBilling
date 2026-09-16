@@ -244,3 +244,8 @@ export function getDeviceName() {
 export function setDeviceName(name) {
   localStorage.setItem('device_name', name);
 }
+
+export const getNextInvoiceNumber = () => {
+  return 'INV-' + Math.floor(100000 + Math.random() * 900000);
+};
+
