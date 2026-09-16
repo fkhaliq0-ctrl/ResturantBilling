@@ -24,6 +24,7 @@ import KitchenDisplay from './components/KitchenDisplay';
 import PrinterSettings from './components/PrinterSettings';
 import AttendanceBiometric from './components/AttendanceBiometric';
 import HardwareStatus from './components/HardwareStatus';
+import PrinterPopup from './components/PrinterPopup';
 import CustomerDatabase from './components/CustomerDatabase';
 import StaffManagement from './components/StaffManagement';
 import InventoryStock from './components/InventoryStock';
@@ -41,6 +42,7 @@ import { logSale } from './utils/salesLog';
 export default function App() {
   const [unlocked, setUnlocked] = useState(false);
   const [screen, setScreen] = useState('order-type'); // order-type → table-select → categories → items → success
+  const [printerPopupOpen, setPrinterPopupOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -413,6 +415,17 @@ export default function App() {
             📝
           </button>
           <button
+            onClick={() => { playButtonPress(); setPrinterPopupOpen(true); }}
+            className="relative w-11 h-11 rounded-xl bg-slate-700/60 flex items-center justify-center 
+              text-xl btn-press hover:bg-slate-600/60 transition-colors"
+            title="Printer"
+          >
+            🖨️
+            <span className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-full border border-slate-800 ${
+              localStorage.getItem('connected_printer_mac') ? 'bg-green-400' : 'bg-red-400'
+            }`} />
+          </button>
+          <button
             onClick={() => {
               playButtonPress();
               setScreen('settings');
@@ -757,6 +770,12 @@ export default function App() {
           />
         )}
       </div>
+
+      {/* ── Printer Selection Popup ── */}
+      <PrinterPopup
+        open={printerPopupOpen}
+        onClose={() => setPrinterPopupOpen(false)}
+      />
     </div>
   );
 }
