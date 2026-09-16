@@ -6,7 +6,7 @@
                  "android":  {
                                  "package":  "com.fkhaliq.mehfilenihari",
                                  "adaptiveIcon":  {
-                                                      "foregroundImage":  "./assets/icon.ico",
+                                                      "foregroundImage":  "./assets/adaptive-foreground.png",
                                                       "backgroundColor":  "#ffffff"
                                                   }
                              },

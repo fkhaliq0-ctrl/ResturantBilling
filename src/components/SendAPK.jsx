@@ -5,7 +5,7 @@ import { playButtonPress, playCheckoutSuccess } from '../utils/audio';
 const APK_CONFIG_KEY = 'apk_distribution_config';
 
 const DEFAULT_CONFIG = {
-  apkUrl: 'https://github.com/fkhaliq0-ctrl/ResturantBilling/releases/latest/download/Mehfil-E-Nihari.apk',
+  apkUrl: 'https://github.com/fkhaliq0-ctrl/ResturantBilling/releases/download/v1.2.3/Mehfil-E-Nihari.apk',
   appName: 'Mehfil-E-Nihari POS',
   version: '1.2.0',
   ownerPhone: '919999999999',

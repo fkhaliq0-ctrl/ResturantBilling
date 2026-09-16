@@ -32,6 +32,30 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
   const verifyPin = (enteredPin) => {
     const roleObj = roles.find(r => r.id === selectedRole);
     if (roleObj && enteredPin === roleObj.pin) {
+      // ── Employee Revocation Check ──────────────────────
+      try {
+        const staffList = JSON.parse(localStorage.getItem('staff') || '[]');
+        const activeStaff = staffList.find(s => s.role === roleObj.id || s.name?.toLowerCase() === roleObj.title?.toLowerCase());
+        if (activeStaff && activeStaff.isActive === false) {
+          playErrorSound();
+          setError(true);
+          setPin('');
+          alert('❌ Account deactivated. Contact admin to reactivate.');
+          setTimeout(() => { setError(false); }, 600);
+          return;
+        }
+      } catch (e) { /* no staff data yet — allow login */ }
+      // ── Role-based access check ────────────────────────
+      const rolePermissions = JSON.parse(localStorage.getItem('role_permissions') || '{}');
+      const userPerms = rolePermissions[roleObj.id];
+      if (userPerms && userPerms._revoked === true) {
+        playErrorSound();
+        setError(true);
+        setPin('');
+        alert('❌ Your access has been revoked by the administrator.');
+        setTimeout(() => { setError(false); }, 600);
+        return;
+      }
       playCheckoutSuccess();
       const unlockHandler = onUnlock || onAuthenticated || onLoginSuccess;
       if (typeof unlockHandler === 'function') {

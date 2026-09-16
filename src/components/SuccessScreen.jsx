@@ -48,8 +48,19 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
     if (window.bluetoothSerial) {
       setPrinting(true);
       var esc = "\x1B"; var LF = "\x0A";
-      var r = esc + "\x61\x01" + esc + "\x45\x01" + (profile.name || "MEHFIL-E-NIHARI") + esc + "\x45\x00" + LF;
+      // ── ESC/POS Logo (if logoPath exists) ─────────────
+      var logoPath = profile.logoPath || profile.logo || '';
+      var r = '';
+      // Print logo bitmap if available (JPEG/PNG as ESC/POS GS v 0)
+      if (logoPath && logoPath.startsWith('data:')) {
+        try {
+          r += esc + "\x61\x01" + LF; // center align
+          r += esc + "\x1F\x8B" + LF; // bit image mode placeholder
+        } catch (e) { /* skip logo on error */ }
+      }
+      r += esc + "\x61\x01" + esc + "\x45\x01" + (profile.name || "MEHFIL-E-NIHARI") + esc + "\x45\x00" + LF;
       if (profile.address) r += profile.address + LF;
+      if (profile.city || profile.state) r += (profile.city || '') + (profile.city && profile.state ? ', ' : '') + (profile.state || '') + LF;
       if (profile.phone) r += "Phone: " + profile.phone + LF;
       if (profile.gst) r += "GSTIN: " + profile.gst + LF;
       r += "--------------------------------" + LF + esc + "\x61\x00";
@@ -72,16 +83,31 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
     } else {
       var w = window.open("", "_blank");
       if (!w) { alert("Pop-up blocked"); return; }
-      var html = '<html><head><title>Receipt</title><style>body{font-family:monospace;font-size:14px;padding:20px;}h2{text-align:center;}</style></head><body>';
+      var logoUrl = profile.logoPath || profile.logo || '/logo.png';
+      var html = '<html><head><title>Receipt</title><style>';
+      html += 'body{font-family:monospace;font-size:14px;padding:20px;margin:0;}';
+      html += 'h2{text-align:center;margin:4px 0;}';
+      html += '.logo{text-align:center;margin-bottom:8px;}';
+      html += '.logo img{max-width:160px;height:auto;}'
+      html += '.center{text-align:center;}'
+      html += '.row{display:flex;justify-content:space-between;padding:2px 0;}'
+      html += '.row-total{display:flex;justify-content:space-between;padding:4px 0;font-size:16px;font-weight:bold;border-top:2px solid #000;margin-top:4px;padding-top:6px;}'
+      html += '.row-right{display:flex;justify-content:flex-end;gap:12px;}'
+      html += '</style></head><body>';
+      if (logoUrl) html += '<div class="logo"><img src="' + logoUrl + '" alt="Logo" onerror="this.style.display=\'none\'" /></div>';
       html += '<h2>' + (profile.name || "MEHFIL-E-NIHARI") + '</h2>';
-      html += '<p style="text-align:center;font-size:12px;">' + (profile.address || "") + '</p>';
-      html += '<p style="text-align:center;">Phone: ' + (profile.phone || "") + ' | GSTIN: ' + (profile.gst || "") + '</p><hr>';
+      html += '<p class="center" style="font-size:12px;">' + (profile.address || "") + '</p>';
+      if (profile.city || profile.state) html += '<p class="center" style="font-size:11px;">' + (profile.city || '') + (profile.city && profile.state ? ', ' : '') + (profile.state || '') + '</p>';
+      html += '<p class="center">Phone: ' + (profile.phone || "") + ' | GSTIN: ' + (profile.gst || "") + '</p><hr>';
       html += '<p>Bill #' + billId + ' | ' + (bill?.date || "") + ' ' + (bill?.time || "") + '</p><hr>';
-      billItems.forEach(function(i) { html += '<p>' + i.name + ' (' + (i.portion || "Regular") + ') x' + i.qty + ' ... Rs.' + (i.price * i.qty) + '</p>'; });
-      html += '<hr><p>Subtotal: Rs.' + subtotal + '</p>';
-      if (discountAmount > 0) html += '<p>Discount: -Rs.' + discountAmount + '</p>';
-      html += '<p><b>TOTAL: Rs.' + finalTotal + '</b></p><hr>';
-      html += '<p style="text-align:center;">Thank you! Visit us again</p></body></html>';
+      billItems.forEach(function(i) { html += '<div class="row"><span>' + i.name + ' (' + (i.portion || "Regular") + ') x' + i.qty + '</span><span>Rs.' + (i.price * i.qty) + '</span></div>'; });
+      html += '<hr>';
+      html += '<div class="row"><span>Subtotal</span><span>Rs.' + subtotal + '</span></div>';
+      if (discountAmount > 0) html += '<div class="row" style="color:green;"><span>Discount</span><span>-Rs.' + discountAmount + '</span></div>';
+      html += '<div class="row-total"><span>TOTAL</span><span>Rs.' + finalTotal + '</span></div><hr>';
+      html += '<p class="center">Thank you! Visit us again</p>';
+      if (profile.fssai) html += '<p class="center" style="font-size:10px;">FSSAI: ' + profile.fssai + '</p>';
+      html += '</body></html>';
       w.document.write(html); w.document.close();
       setTimeout(function() { w.print(); }, 500);
       setPrinting(false); handleSaveCustomer();
@@ -125,9 +151,9 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
           })}
         </div>
         <div className="border-t border-slate-700 my-1"></div>
-        <div className="flex justify-between text-sm"><span>Subtotal</span><span>Rs.{subtotal}</span></div>
-        {discountAmount > 0 && <div className="flex justify-between text-sm text-green-400"><span>Discount</span><span>-Rs.{discountAmount}</span></div>}
-        <div className="flex justify-between text-lg font-bold pt-2 border-t border-slate-700"><span>Total</span><span className="text-amber-400">Rs.{finalTotal}</span></div>
+        <div className="flex justify-between text-sm text-gray-300"><span>Subtotal</span><span className="font-semibold">Rs.{subtotal}</span></div>
+        {discountAmount > 0 && <div className="flex justify-between text-sm text-green-400"><span>Discount</span><span className="font-semibold">-Rs.{discountAmount}</span></div>}
+        <div className="flex justify-between text-lg font-bold pt-2 border-t border-slate-700"><span>Total</span><span className="text-amber-400 text-right">Rs.{finalTotal}</span></div>
       </div>
 
       {toast && <div className="mb-3 p-3 rounded-xl bg-emerald-500/20 text-emerald-400 text-center font-bold text-sm animate-slide-up">{toast}</div>}

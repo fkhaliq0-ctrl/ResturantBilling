@@ -68,15 +68,31 @@ export default function Settings({ onBack, onNavigate }) {
     }
   };
 
+  const [clearPinModal, setClearPinModal] = useState(false);
+  const [clearPinInput, setClearPinInput] = useState('');
+
   const handleClearData = async () => {
     if (confirm('⚠️ This will delete ALL bills and data. Are you sure?')) {
-      if (confirm('This cannot be undone. Confirm?')) {
-        await clearAllData();
-        playCheckoutSuccess();
-        setMessage('All data cleared!');
-        setMessageType('success');
-      }
+      setClearPinModal(true);
+      setClearPinInput('');
     }
+  };
+
+  const executeClearData = async (enteredPin) => {
+    const savedPin = localStorage.getItem('app_pin') || '1234';
+    if (enteredPin !== savedPin) {
+      playErrorSound();
+      alert('❌ Wrong PIN. Only admin can clear all data.');
+      setClearPinModal(false);
+      setClearPinInput('');
+      return;
+    }
+    await clearAllData();
+    setClearPinModal(false);
+    setClearPinInput('');
+    playCheckoutSuccess();
+    setMessage('All data cleared!');
+    setMessageType('success');
   };
 
   return (
@@ -314,6 +330,17 @@ export default function Settings({ onBack, onNavigate }) {
                 100% Offline • No Subscriptions • Free
               </p>
             </div>
+
+            {/* Staff Logout Button */}
+            <div className="bg-slate-700/50 rounded-2xl p-5 space-y-3">
+              <h2 className="text-xl font-bold text-white">🚪 Session</h2>
+              <button
+                onClick={() => { playButtonPress(); localStorage.removeItem('unlocked_role'); window.location.reload(); }}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 text-white text-lg font-bold btn-press shadow-lg"
+              >
+                🚪 Logout & Switch User
+              </button>
+            </div>
           </>
         ) : (
           <div className="bg-slate-700/50 rounded-2xl p-5 space-y-4">
@@ -386,9 +413,45 @@ export default function Settings({ onBack, onNavigate }) {
                 ✅ Save
               </button>
             </div>
-          </div>
-        )}
+          </div>          )
+        }
       </div>
+
+      {/* ── Admin PIN Modal for Clear Data ────────────── */}
+      {clearPinModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6">
+          <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-sm border border-red-500/30 shadow-2xl animate-fade-in">
+            <h3 className="text-xl font-bold text-white text-center mb-2">🔐 Admin PIN Required</h3>
+            <p className="text-red-400 text-sm text-center mb-4">Enter your PIN to confirm data deletion</p>
+            <input
+              type="password"
+              maxLength={4}
+              inputMode="numeric"
+              autoFocus
+              value={clearPinInput}
+              onChange={(e) => setClearPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              className="w-full py-3 px-4 rounded-xl bg-slate-900 border border-red-500/50 text-white text-2xl text-center tracking-[0.5em] font-bold focus:border-red-500 focus:outline-none mb-4"
+              placeholder="••••"
+              onKeyDown={(e) => { if (e.key === 'Enter' && clearPinInput.length === 4) executeClearData(clearPinInput); }}
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { playButtonPress(); setClearPinModal(false); setClearPinInput(''); }}
+                className="flex-1 py-3 rounded-xl bg-slate-600 text-white font-bold btn-press"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { if (clearPinInput.length === 4) executeClearData(clearPinInput); }}
+                disabled={clearPinInput.length !== 4}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold btn-press disabled:opacity-40"
+              >
+                🗑️ Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

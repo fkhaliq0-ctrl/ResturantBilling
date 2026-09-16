@@ -394,6 +394,23 @@ export default function App() {
           >
             ⚙️
           </button>
+          <button
+            onClick={() => {
+              playButtonPress();
+              localStorage.removeItem('unlocked_role');
+              setUnlocked(false);
+              setScreen('order-type');
+              setCart([]);
+              setActiveTable(null);
+              setOrderType(null);
+              setTableOrders({});
+            }}
+            className="w-11 h-11 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center 
+              text-xl btn-press hover:bg-red-500/30 transition-colors"
+            title="Logout"
+          >
+            🚪
+          </button>
         </div>
       </div>
 
