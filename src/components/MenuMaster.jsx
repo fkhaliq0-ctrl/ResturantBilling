@@ -173,7 +173,7 @@ export default function MenuMaster({ onBack }) {
         </button>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">📋 Menu Master</h1>
-          <button onClick={() => { playButtonPress(); setEditMode(editMode ? null : {}); resetForm(); }}
+          <button onClick={() => { playButtonPress(); if (editMode) { resetForm(); } else { setEditMode({}); setName(''); setNameHi(''); setNameUr(''); setPrice(''); setPortion(''); setCategory('Nihari'); setImageUrl(''); setImageTab('url'); } }}
             className={`px-4 py-2 rounded-xl font-bold text-sm btn-press ${editMode ? 'bg-red-500/20 text-red-400' : 'bg-amber-500 text-white'}`}>
             {editMode ? '✕ Cancel' : '+ Add Item'}
           </button>
