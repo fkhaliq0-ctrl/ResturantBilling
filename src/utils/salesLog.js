@@ -1,64 +1,34 @@
 // Sales Logging Engine
-// Reads and writes live checkout orders to data/salesLog.json
-// Safe for both Node.js (desktop/server) and React Native (mobile)
+// Stores live checkout orders in localStorage (browser) or memory (mobile)
+// Compatible with Vite browser builds and Capacitor APK
 
-const isMobile = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
-
-let fs = null;
-let path = null;
-
-if (!isMobile) {
-  try {
-    fs = require('fs');
-    path = require('path');
-  } catch (e) {
-    console.warn('[SalesLog] Node modules not available');
-  }
-}
-
-const SALES_LOG_PATH = path ? path.join(process.cwd(), 'data', 'salesLog.json') : '';
-
-function initializeSalesLog() {
-  if (isMobile || !fs || !path) return;
-  try {
-    if (!fs.existsSync(path.dirname(SALES_LOG_PATH))) {
-      fs.mkdirSync(path.dirname(SALES_LOG_PATH), { recursive: true });
-    }
-    if (!fs.existsSync(SALES_LOG_PATH)) {
-      fs.writeFileSync(SALES_LOG_PATH, JSON.stringify([], null, 2));
-    }
-  } catch (err) {
-    console.error('[SalesLog] Init error:', err);
-  }
-}
+const SALES_KEY = 'sales_log';
+let memoryLog = [];
 
 export function readSalesLog() {
-  if (isMobile || !fs || !path) return [];
   try {
-    initializeSalesLog();
-    const data = fs.readFileSync(SALES_LOG_PATH, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('[SalesLog] Read error:', error);
+    if (typeof localStorage !== 'undefined') {
+      const data = localStorage.getItem(SALES_KEY);
+      return data ? JSON.parse(data) : [];
+    }
+    return memoryLog;
+  } catch {
     return [];
   }
 }
 
 export function writeSalesLog(sales) {
-  if (isMobile || !fs || !path) return;
+  memoryLog = sales;
   try {
-    initializeSalesLog();
-    fs.writeFileSync(SALES_LOG_PATH, JSON.stringify(sales, null, 2));
-  } catch (error) {
-    console.error('[SalesLog] Write error:', error);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(SALES_KEY, JSON.stringify(sales));
+    }
+  } catch {
+    // Storage full or unavailable — memory fallback
   }
 }
 
 export function appendSaleLog(newSale) {
-  if (isMobile) {
-    console.log('[SalesLog] Mobile environment - relying on Firestore cloud sync.');
-    return;
-  }
   try {
     const sales = readSalesLog();
     sales.push(newSale);
@@ -71,5 +41,3 @@ export function appendSaleLog(newSale) {
 export function logSale(newSale) {
   return appendSaleLog(newSale);
 }
-
-initializeSalesLog();
