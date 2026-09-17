@@ -436,23 +436,7 @@ export default function App() {
           >
             ⚙️
           </button>
-          <button
-            onClick={() => {
-              playButtonPress();
-              localStorage.removeItem('unlocked_role');
-              setUnlocked(false);
-              setScreen('order-type');
-              setCart([]);
-              setActiveTable(null);
-              setOrderType(null);
-              setTableOrders({});
-            }}
-            className="w-11 h-11 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center 
-              text-xl btn-press hover:bg-red-500/30 transition-colors"
-            title="Logout"
-          >
-            🚪
-          </button>
+
         </div>
       </div>
 
@@ -507,6 +491,24 @@ export default function App() {
                   ⚙️ Settings
                 </button>
               </div>
+
+              {/* Logout button — bottom of order-type screen */}
+              <button
+                onClick={() => {
+                  playButtonPress();
+                  localStorage.removeItem('unlocked_role');
+                  setUnlocked(false);
+                  setScreen('order-type');
+                  setCart([]);
+                  setActiveTable(null);
+                  setOrderType(null);
+                  setTableOrders({});
+                }}
+                className="mt-8 px-6 py-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 
+                  text-sm font-bold btn-press hover:bg-red-500/30 transition-colors flex items-center gap-2"
+              >
+                🚪 Logout
+              </button>
             </div>
           )}
 

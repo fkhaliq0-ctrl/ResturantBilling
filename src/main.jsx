@@ -9,5 +9,11 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
-CapacitorUpdater.notifyAppReady();
+// Safe Capacitor updater — only runs in native context
+try {
+  if (typeof window !== 'undefined' && window.Capacitor) {
+    import('@capgo/capacitor-updater').then(({ CapacitorUpdater }) => {
+      CapacitorUpdater.notifyAppReady();
+    }).catch(() => {});
+  }
+} catch (e) {}

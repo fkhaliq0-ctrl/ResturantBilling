@@ -1,9 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess }) {
   const [selectedRole, setSelectedRole] = useState(null);
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const pinRef = useRef('');
+  const selectedRoleRef = useRef(null);
+  const onUnlockRef = useRef(onUnlock || onAuthenticated || onLoginSuccess);
+
+  // Keep refs in sync with latest state
+  useEffect(() => { pinRef.current = pin; }, [pin]);
+  useEffect(() => { selectedRoleRef.current = selectedRole; }, [selectedRole]);
+  useEffect(() => { onUnlockRef.current = onUnlock || onAuthenticated || onLoginSuccess; }, [onUnlock, onAuthenticated, onLoginSuccess]);
 
   const roles = [
     { id: 'owner', title: 'Owner', subtitle: 'Full Access & Reports', icon: '👑', pin: '1234' },
@@ -11,23 +19,9 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
     { id: 'cashier', title: 'Cashier', subtitle: 'Billing Only', icon: '💳', pin: '0000' }
   ];
 
-  const handleNumPress = (num) => {
-    const newPin = pin + num;
-    if (newPin.length <= 4) {
-      setPin(newPin);
-      if (newPin.length === 4) {
-        verifyPin(newPin);
-      }
-    }
-  };
-
-  const handleClear = () => {
-    setPin('');
-    setError(false);
-  };
-
-  const verifyPin = (enteredPin) => {
-    const roleObj = roles.find(r => r.id === selectedRole);
+  const verifyPin = useCallback((enteredPin) => {
+    const roleId = selectedRoleRef.current;
+    const roleObj = roles.find(r => r.id === roleId);
     if (roleObj && enteredPin === roleObj.pin) {
       try {
         const staffData = typeof window !== 'undefined' && window.localStorage ? localStorage.getItem('staff') : null;
@@ -44,7 +38,7 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
         }
       } catch (e) {}
 
-      const unlockHandler = onUnlock || onAuthenticated || onLoginSuccess;
+      const unlockHandler = onUnlockRef.current;
       if (typeof unlockHandler === 'function') {
         unlockHandler(roleObj);
       } else if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
@@ -57,7 +51,22 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
         setError(false);
       }, 600);
     }
-  };
+  }, []);
+
+  const handleNumPress = useCallback((num) => {
+    const newPin = pinRef.current + num;
+    if (newPin.length <= 4) {
+      setPin(newPin);
+      if (newPin.length === 4) {
+        verifyPin(newPin);
+      }
+    }
+  }, [verifyPin]);
+
+  const handleClear = useCallback(() => {
+    setPin('');
+    setError(false);
+  }, []);
 
   useEffect(() => {
     if (!selectedRole) return;
@@ -69,17 +78,15 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
       } else if (e.key === 'Backspace' || e.key === 'Delete') {
         handleClear();
       } else if (e.key === 'Enter') {
-        if (pin.length === 4) verifyPin(pin);
+        if (pinRef.current.length === 4) verifyPin(pinRef.current);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
-        window.removeEventListener('keydown', handleKeyDown);
-      }
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedRole, pin]);
+  }, [selectedRole, handleNumPress, handleClear, verifyPin]);
 
   if (!selectedRole) {
     return (
@@ -92,7 +99,7 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
             <button
               key={r.id}
               onClick={() => setSelectedRole(r.id)}
-              style={{ width: '100%', padding: 24, borderRadius: 16, backgroundColor: '#1e293b', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#334155', cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column' }}
+              type="button" style={{ width: '100%', padding: 24, borderRadius: 16, backgroundColor: '#1e293b', alignItems: 'center', marginBottom: 12, border: '1px solid #334155', cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column' }}
             >
               <span style={{ fontSize: 36, marginBottom: 8 }}>{r.icon}</span>
               <span style={{ fontSize: 20, marginBottom: 4, color: '#ffffff', fontWeight: 'bold' }}>{r.title}</span>
@@ -110,7 +117,7 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
     <div style={{ flex: 1, height: '100%', backgroundColor: '#0f172a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, position: 'relative' }}>
       <button
         onClick={() => { setSelectedRole(null); setPin(''); }}
-        style={{ position: 'absolute', top: 24, left: 24, paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 8, borderRadius: 12, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', color: '#94a3b8', fontSize: 14, cursor: 'pointer' }}
+        type="button" style={{ position: 'absolute', top: 24, left: 24, paddingLeft: 12, paddingRight: 12, paddingTop: 8, paddingBottom: 8, borderRadius: 12, backgroundColor: '#1e293b', border: '1px solid #334155', color: '#94a3b8', fontSize: 14, cursor: 'pointer' }}
       >
         ← Back to Roles
       </button>
@@ -129,12 +136,11 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
               width: 48,
               height: 48,
               borderRadius: 12,
-              borderWidth: 2,
+              border: '2px solid ' + (error ? '#ef4444' : (pin.length > i ? '#f59e0b' : '#334155')),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: pin.length > i ? '#fbbf24' : '#1e293b',
-              borderColor: error ? '#ef4444' : (pin.length > i ? '#f59e0b' : '#334155')
             }}
           >
             <span style={{ fontSize: 24, fontWeight: 'bold', color: pin.length > i ? '#0f172a' : 'transparent' }}>
@@ -148,29 +154,29 @@ export default function PinScreen({ onUnlock, onAuthenticated, onLoginSuccess })
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
           <button
             key={num}
-            onClick={() => handleNumPress(num.toString())}
-            style={{ width: 72, height: 56, borderRadius: 12, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 'bold', color: '#ffffff', cursor: 'pointer' }}
+            type="button" onClick={() => handleNumPress(num.toString())}
+            style={{ width: 72, height: 56, borderRadius: 12, backgroundColor: '#1e293b', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 'bold', color: '#ffffff', cursor: 'pointer' }}
           >
             {num}
           </button>
         ))}
         <button
-          onClick={handleClear}
-          style={{ width: 72, height: 56, borderRadius: 12, backgroundColor: 'rgba(239, 68, 68, 0.2)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171', fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}
+          type="button" onClick={handleClear}
+          style={{ width: 72, height: 56, borderRadius: 12, backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171', fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}
         >
           Clear
         </button>
         <button
-          onClick={() => handleNumPress('0')}
-          style={{ width: 72, height: 56, borderRadius: 12, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 'bold', color: '#ffffff', cursor: 'pointer' }}
+          type="button" onClick={() => handleNumPress('0')}
+          style={{ width: 72, height: 56, borderRadius: 12, backgroundColor: '#1e293b', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 'bold', color: '#ffffff', cursor: 'pointer' }}
         >
           0
         </button>
         <button
-          onClick={() => {
-            if (pin.length === 4) verifyPin(pin);
+          type="button" onClick={() => {
+            if (pinRef.current.length === 4) verifyPin(pinRef.current);
           }}
-          style={{ width: 72, height: 56, borderRadius: 12, backgroundColor: 'rgba(34, 197, 94, 0.2)', borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4ade80', fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}
+          style={{ width: 72, height: 56, borderRadius: 12, backgroundColor: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4ade80', fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}
         >
           Enter
         </button>
