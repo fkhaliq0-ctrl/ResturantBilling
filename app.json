@@ -1,19 +1,25 @@
 {
-    "expo":  {
-                 "name":  "MEN",
-                 "slug":  "mehfil-e-nihari",
-                 "version":  "1.0.0",
-                 "android":  {
-                                 "package":  "com.fkhaliq.mehfilenihari",
-                                 "adaptiveIcon":  {
-                                                      "foregroundImage":  "./assets/adaptive-foreground.png",
-                                                      "backgroundColor":  "#ffffff"
-                                                  }
-                             },
-                 "extra":  {
-                               "eas":  {
-                                           "projectId":  "435353a3-8adf-44f4-99f8-325317b7220f"
-                                       }
-                           }
-             }
+  "expo": {
+    "name": "Men",
+    "slug": "men",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/playstore.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a120b"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/playstore.png",
+        "backgroundColor": "#1a120b"
+      },
+      "package": "com.restaurant.billing"
+    }
+  }
 }

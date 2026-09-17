@@ -1,9 +1,9 @@
-// -- Native Bluetooth ESC/POS Thermal Printer Module ------------------
+﻿// -- Native Bluetooth ESC/POS Thermal Printer Module ------------------
 const ESC = "\x1B";
 const GS = "\x1D";
 const LF = "\x0A";
 
-export const Commands = {
+export const PRINTER_COMMANDS = {
   CENTER: ESC + "\x61\x01",
   LEFT: ESC + "\x61\x00",
   RIGHT: ESC + "\x61\x02",
@@ -81,11 +81,11 @@ export function sendData(data) {
 
 export function buildReceipt({ profile, bill, billId, discount }) {
   let r = "";
-  r += Commands.INIT;
-  r += Commands.CENTER;
-  r += Commands.DOUBLE_HEIGHT;
-  r += Commands.BOLD_ON;
-  r += (profile?.name || "MEHFIL-E-NIHARI") + Commands.BOLD_OFF + Commands.NORMAL_SIZE;
+  r += PRINTER_COMMANDS.INIT;
+  r += PRINTER_COMMANDS.CENTER;
+  r += PRINTER_COMMANDS.DOUBLE_HEIGHT;
+  r += PRINTER_COMMANDS.BOLD_ON;
+  r += (profile?.name || "MEHFIL-E-NIHARI") + PRINTER_COMMANDS.BOLD_OFF + PRINTER_COMMANDS.NORMAL_SIZE;
   r += LF;
 
   if (profile?.tagline) r += profile.tagline + LF;
@@ -95,7 +95,7 @@ export function buildReceipt({ profile, bill, billId, discount }) {
   if (profile?.gst || profile?.gstin) r += "GSTIN: " + (profile.gst || profile.gstin) + LF;
   r += "--------------------------------" + LF;
 
-  r += Commands.LEFT;
+  r += PRINTER_COMMANDS.LEFT;
   r += "Bill: #" + billId + LF;
   r += "Date: " + (bill?.date || "") + " " + (bill?.time || "") + LF;
   r += "Payment: " + (bill?.paymentMethod || "Cash").toUpperCase() + LF;
@@ -113,16 +113,16 @@ export function buildReceipt({ profile, bill, billId, discount }) {
   if (discount?.amount > 0) {
     r += "Discount (" + (discount.type === "percent" ? discount.value + "%" : "Flat") + "): -Rs." + discount.amount + LF;
   }
-  r += Commands.BOLD_ON;
+  r += PRINTER_COMMANDS.BOLD_ON;
   r += "TOTAL: Rs." + (bill?.total || 0) + LF;
-  r += Commands.BOLD_OFF;
+  r += PRINTER_COMMANDS.BOLD_OFF;
   r += "--------------------------------" + LF;
 
-  r += Commands.CENTER;
+  r += PRINTER_COMMANDS.CENTER;
   r += "Thank you! Visit us again" + LF;
   r += "www.mehfil-e-nihari.com" + LF;
   r += LF + LF;
-  r += Commands.CUT_PAPER;
+  r += PRINTER_COMMANDS.CUT_PAPER;
 
   return r;
 }
@@ -142,3 +142,5 @@ export function disconnect() {
     window.bluetoothSerial.disconnect(() => resolve(true), () => resolve(false));
   });
 }
+
+
