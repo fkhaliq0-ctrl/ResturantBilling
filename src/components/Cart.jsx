@@ -126,6 +126,21 @@ export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, 
         {/* Checkout section */}
         {cart.length > 0 && (
           <div className="p-4 border-t border-slate-700 space-y-3 animate-slide-up shrink-0">
+            {/* Table / Takeaway Indicator */}
+            <div className="flex items-center justify-center gap-2 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <span className="text-lg">
+                {orderType === 'takeaway' ? '📦' : '🪑'}
+              </span>
+              <span className="text-amber-300 font-bold text-sm">
+                {orderType === 'takeaway'
+                  ? 'Takeaway Order'
+                  : activeTable
+                    ? 'Table ' + activeTable
+                    : 'Dine-In'
+                }
+              </span>
+            </div>
+
             {/* Total */}
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-300 text-lg font-semibold">Total</span>
@@ -188,12 +203,7 @@ export default function Cart({ cart, onUpdateQty, onRemove, onCheckout, isOpen, 
               </div>
             )}
 
-            {/* Active table indicator */}
-            {orderType === 'dine-in' && activeTable && (
-              <div className="text-center text-amber-300 text-[10px] font-medium">
-                🪑 Table {activeTable}
-              </div>
-            )}
+
           </div>
         )}
       </div>

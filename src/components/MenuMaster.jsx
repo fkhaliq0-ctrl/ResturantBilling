@@ -46,7 +46,9 @@ export default function MenuMaster({ onBack }) {
   const [toast, setToast] = useState('');
   const [sortBy, setSortBy] = useState('default');
   const [imageTab, setImageTab] = useState('url');
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // item id pending deletion
   const fileInputRef = useRef(null);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     loadItems();
@@ -116,12 +118,17 @@ export default function MenuMaster({ onBack }) {
   };
 
   const handleDeleteItem = async (itemId) => {
-    if (!confirm('Remove this item?')) return;
+    setDeleteConfirm(itemId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
     playErrorSound();
-    const updated = menuItems.filter(i => i.id !== itemId);
+    const updated = menuItems.filter(i => i.id !== deleteConfirm);
     setMenuItems(updated);
     await saveMenuItems(updated);
     showToast('Item removed');
+    setDeleteConfirm(null);
   };
 
   const handleEditItem = (item) => {
@@ -134,6 +141,8 @@ export default function MenuMaster({ onBack }) {
     setCategory(item.category);
     setImageUrl(item.image || '');
     playButtonPress();
+    // Scroll to top so the form is visible
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
 
   const resetForm = () => {
@@ -184,7 +193,7 @@ export default function MenuMaster({ onBack }) {
         <div className="mx-4 mt-3 p-3 rounded-xl bg-emerald-500/20 text-emerald-400 text-center font-bold text-sm animate-slide-up">{toast}</div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* ── Add/Edit Form ─────────────────────────────────── */}
         {(editMode !== null) && (
           <div className="bg-slate-800/60 p-5 rounded-2xl border border-amber-500/30 space-y-3">
@@ -343,6 +352,29 @@ export default function MenuMaster({ onBack }) {
           {menuItems.length} items total • {filtered.length} shown
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-800 border border-red-500/30 rounded-2xl p-6 w-full max-w-sm space-y-4 animate-slide-up">
+            <div className="text-center">
+              <span className="text-5xl">🗑️</span>
+              <h3 className="text-white font-bold text-lg mt-3">Remove Item?</h3>
+              <p className="text-gray-400 text-sm mt-1">Are you sure you want to remove this item from the menu?</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-3 rounded-xl bg-slate-700 text-gray-300 font-bold text-sm btn-press">
+                Cancel
+              </button>
+              <button onClick={confirmDelete}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold text-sm btn-press">
+                🗑️ Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
