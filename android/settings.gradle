@@ -1,10 +1,9 @@
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
 include ':app'
 
-apply from: 'capacitor.settings.gradle'
+File capacitorSettingsFile = new File(settingsDir, 'capacitor.settings.gradle')
+if (capacitorSettingsFile.exists()) {
+    apply from: capacitorSettingsFile
+}
+
+include(':capacitor-cordova-android-plugins')
+project(':capacitor-cordova-android-plugins').projectDir = new File(rootProject.projectDir, 'capacitor-cordova-android-plugins')
