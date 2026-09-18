@@ -235,25 +235,121 @@ export default function HardwareStatus({ onBack }) {
 
         {tab === 'status' && (
           <div className="space-y-4">
+            {/* System Status Grid */}
             <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-3">
               <h3 className="text-white font-bold text-sm">System Status</h3>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'Platform', value: systemInfo.platform, icon: 'PC' },
-                  { label: 'Bluetooth', value: systemInfo.hasBluetooth ? 'Available' : 'Not Available', icon: 'BT' },
-                  { label: 'USB', value: systemInfo.hasUSB ? 'Available' : 'Not Available', icon: 'USB' },
-                  { label: 'Native Plugin', value: systemInfo.hasCapacitor ? 'Connected' : 'Not Found', icon: 'App' },
-                  { label: 'Web Print', value: systemInfo.hasPrint ? 'Available' : 'Not Available', icon: 'PRN' },
-                  { label: 'Printer', value: connectedDevice || 'None', icon: 'DEV' },
+                  { label: 'Platform', value: systemInfo.platform, icon: '💻' },
+                  { label: 'Bluetooth', value: systemInfo.hasBluetooth ? 'Available' : 'Not Available', icon: '📡' },
+                  { label: 'USB', value: systemInfo.hasUSB ? 'Available' : 'Not Available', icon: '🔌' },
+                  { label: 'Native Plugin', value: systemInfo.hasCapacitor ? 'Connected' : 'Not Found', icon: '📱' },
+                  { label: 'Web Print', value: systemInfo.hasPrint ? 'Available' : 'Not Available', icon: '🖨️' },
+                  { label: 'Printer', value: connectedDevice || 'None', icon: '🏷️' },
                 ].map((item, i) => (
                   <div key={i} className="bg-slate-700/50 rounded-xl p-3">
-                    <div className="flex items-center gap-1 mb-1"><span className="text-xs">{item.icon}</span><span className="text-gray-400 text-[10px] font-bold uppercase">{item.label}</span></div>
+                    <div className="flex items-center gap-1 mb-1"><span className="text-sm">{item.icon}</span><span className="text-gray-400 text-[10px] font-bold uppercase">{item.label}</span></div>
                     <p className="text-white text-xs font-bold">{item.value}</p>
                   </div>
                 ))}
               </div>
               <button onClick={fullSystemScan} className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-sm btn-press">Full System Scan</button>
             </div>
+
+            {/* Cash Drawer */}
+            <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-3">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">💰 Cash Drawer</h3>
+              <p className="text-gray-400 text-xs">Connect and manage your cash drawer (auto-open on cash payment)</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-slate-700/50 rounded-xl p-3">
+                  <span className="text-gray-400 text-[10px] font-bold uppercase">Status</span>
+                  <p className="text-amber-400 text-xs font-bold">{window.bluetoothSerial ? 'Ready (via Printer)' : 'Not Connected'}</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-xl p-3">
+                  <span className="text-gray-400 text-[10px] font-bold uppercase">Mode</span>
+                  <p className="text-white text-xs font-bold">Auto-Open on Cash</p>
+                </div>
+              </div>
+              <button onClick={() => {
+                playButtonPress();
+                if (window.bluetoothSerial && connectedDevice) {
+                  var esc = '\x1B';
+                  window.bluetoothSerial.write(esc + '\x70\x00\x19\xFA',
+                    () => { addLog('Cash drawer open command sent'); playCheckoutSuccess(); },
+                    () => { addLog('Cash drawer open failed'); playErrorSound(); }
+                  );
+                } else {
+                  alert('Connect a Bluetooth printer first — cash drawer opens through the printer port.');
+                }
+              }} className="w-full py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-sm btn-press">Open Cash Drawer</button>
+            </div>
+
+            {/* Barcode Scanner */}
+            <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-3">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">📷 Barcode / QR Scanner</h3>
+              <p className="text-gray-400 text-xs">Connect a USB or Bluetooth barcode/QR code scanner for quick item lookup</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-slate-700/50 rounded-xl p-3">
+                  <span className="text-gray-400 text-[10px] font-bold uppercase">USB Scanner</span>
+                  <p className="text-white text-xs font-bold">{navigator.usb ? 'Detectable' : 'Not Available'}</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-xl p-3">
+                  <span className="text-gray-400 text-[10px] font-bold uppercase">Input Mode</span>
+                  <p className="text-white text-xs font-bold">Keyboard Wedge</p>
+                </div>
+              </div>
+              <div className="bg-slate-700/30 rounded-xl p-3">
+                <p className="text-gray-400 text-xs">💡 Most barcode scanners work as keyboard input — just plug in via USB and scan directly into any field.</p>
+              </div>
+              <button onClick={() => {
+                playButtonPress();
+                addLog('Scanner mode: Keyboard wedge (auto-detect USB HID)');
+                alert('Barcode scanners typically work as keyboard input.\n\n1. Connect scanner via USB\n2. Click in any search/input field\n3. Scan the barcode — text appears automatically');
+              }} className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold text-sm btn-press">Configure Scanner</button>
+            </div>
+
+            {/* Customer Display */}
+            <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-3">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">🖥️ Customer Display (VFD)</h3>
+              <p className="text-gray-400 text-xs">Connect a secondary customer-facing display to show order total and payment info</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-slate-700/50 rounded-xl p-3">
+                  <span className="text-gray-400 text-[10px] font-bold uppercase">Display Type</span>
+                  <p className="text-white text-xs font-bold">VFD / LCD</p>
+                </div>
+                <div className="bg-slate-700/50 rounded-xl p-3">
+                  <span className="text-gray-400 text-[10px] font-bold uppercase">Connection</span>
+                  <p className="text-white text-xs font-bold">USB / Serial</p>
+                </div>
+              </div>
+              <div className="bg-slate-700/30 rounded-xl p-3">
+                <p className="text-gray-400 text-xs">💡 Customer displays (VFD) show running total to the customer. Connect via USB or RS-232 serial port.</p>
+              </div>
+              <button onClick={() => {
+                playButtonPress();
+                addLog('Customer display: Configuring VFD...');
+                alert('Customer Display Setup:\n\n1. Connect VFD display via USB or Serial\n2. Install display driver if needed\n3. Display will auto-show order total during checkout');
+              }} className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-sm btn-press">Setup Customer Display</button>
+            </div>
+
+            {/* Kitchen Printer Routing */}
+            <div className="bg-slate-800/60 p-5 rounded-2xl border border-slate-700 space-y-3">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">🍳 Kitchen Printer Routing</h3>
+              <p className="text-gray-400 text-xs">Assign different printers to different categories (e.g., Kitchen items → Kitchen printer, Drinks → Bar printer)</p>
+              <div className="space-y-2">
+                {['Nihari & Gravy', 'Biryani & Rice', 'Roti & Bread', 'Drinks & Sweets', 'Starters & Snacks'].map((cat, i) => (
+                  <div key={i} className="flex items-center justify-between bg-slate-700/50 rounded-xl p-3">
+                    <span className="text-white text-xs font-bold">{cat}</span>
+                    <span className="text-amber-400 text-xs">{connectedDevice ? 'Main Printer' : 'Not Assigned'}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-slate-700/30 rounded-xl p-3">
+                <p className="text-gray-400 text-xs">💡 Connect a second Bluetooth/USB printer to route specific category KOTs to different kitchen stations.</p>
+              </div>
+            </div>
+
+            {/* Activity Log */}
             <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700">
               <h3 className="text-white font-bold text-sm mb-2">Activity Log</h3>
               <div className="bg-slate-900/60 rounded-xl p-3 max-h-48 overflow-y-auto font-mono text-xs">
