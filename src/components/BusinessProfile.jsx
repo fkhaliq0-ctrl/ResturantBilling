@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { loadBusinessProfileSync } from '../utils/storage';
 
 export default function BusinessProfile({ onBack }) {
   const [activeTab, setActiveTab] = useState('profile');
   const [businessData, setBusinessData] = useState({
-    name: 'MEHFIL-E-NIHARI',
+    name: '',
     tagline: 'Authentic Taste & Tradition',
     address: '12A/107, Main Road, Opp metro Pillar No 196, Maujpur, Delhi - 110053',
     city: 'Delhi',
@@ -132,10 +132,10 @@ export default function BusinessProfile({ onBack }) {
   const labelCls = "block text-sm font-medium text-gray-300";
 
   const tabs = [
-    { id: 'profile', icon: '👤', label: 'Profile' },
-    { id: 'gst', icon: '🧾', label: 'GST & Tax' },
-    { id: 'invoice', icon: '🧾', label: 'Invoice' },
-    { id: 'bank', icon: '🏦', label: 'Bank' },
+    { id: 'profile', icon: 'ðŸ‘¤', label: 'Profile' },
+    { id: 'gst', icon: 'ðŸ§¾', label: 'GST & Tax' },
+    { id: 'invoice', icon: 'ðŸ§¾', label: 'Invoice' },
+    { id: 'bank', icon: 'ðŸ¦', label: 'Bank' },
   ];
 
   return (
@@ -144,7 +144,7 @@ export default function BusinessProfile({ onBack }) {
       <div className="flex items-center gap-3 mb-4">
         {onBack && (
           <button onClick={onBack} className="px-3 py-1.5 bg-gray-700 rounded-lg text-sm hover:bg-gray-600 transition">
-            ← Back
+            â† Back
           </button>
         )}
         <h2 className="text-xl md:text-2xl font-bold">Business Profile & Settings</h2>
@@ -165,18 +165,18 @@ export default function BusinessProfile({ onBack }) {
       {/* Save Feedback */}
       {saved && (
         <div className="mb-4 p-3 rounded-lg bg-green-900/50 border border-green-600 text-green-300 text-sm flex items-center gap-2">
-          ✅ Business profile saved successfully!
+          âœ… Business profile saved successfully!
         </div>
       )}
 
       <form onSubmit={handleSave} className="space-y-4 bg-gray-900 p-6 rounded-lg border border-gray-800">
 
-        {/* ── Profile Tab ── */}
+        {/* â”€â”€ Profile Tab â”€â”€ */}
         {activeTab === 'profile' && (
           <div className="space-y-4">
             <div>
-              <label className={labelCls}>Restaurant Name *</label>
-              <input type="text" required value={businessData.name} onChange={(e) => setBusinessData({...businessData, name: e.target.value})} className={inputCls} />
+              <label className={labelCls}>Restaurant Name (Optional)</label>
+              <input type="text"  value={businessData.name} onChange={(e) => setBusinessData({...businessData, name: e.target.value})} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Tagline / Slogan</label>
@@ -184,7 +184,7 @@ export default function BusinessProfile({ onBack }) {
             </div>
             <div>
               <label className={labelCls}>Full Address *</label>
-              <input type="text" required value={businessData.address} onChange={(e) => setBusinessData({...businessData, address: e.target.value})} className={inputCls} />
+              <input type="text"  value={businessData.address} onChange={(e) => setBusinessData({...businessData, address: e.target.value})} className={inputCls} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -199,7 +199,7 @@ export default function BusinessProfile({ onBack }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Contact Phone *</label>
-                <input type="tel" required value={businessData.phone} onChange={(e) => setBusinessData({...businessData, phone: e.target.value})} className={inputCls} />
+                <input type="tel"  value={businessData.phone} onChange={(e) => setBusinessData({...businessData, phone: e.target.value})} className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Email</label>
@@ -209,7 +209,7 @@ export default function BusinessProfile({ onBack }) {
           </div>
         )}
 
-        {/* ── GST & Tax Tab ── */}
+        {/* â”€â”€ GST & Tax Tab â”€â”€ */}
         {activeTab === 'gst' && (
           <div className="space-y-4">
             <div>
@@ -222,17 +222,17 @@ export default function BusinessProfile({ onBack }) {
             </div>
 
             <div className="border-t border-gray-700 pt-4">
-              <h3 className="text-sm font-bold text-amber-400 mb-3">💰 Tax Calculation</h3>
+              <h3 className="text-sm font-bold text-amber-400 mb-3">ðŸ’° Tax Calculation</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Tax Rate (%)</label>
                   <select value={businessData.taxRate} onChange={(e) => setBusinessData({...businessData, taxRate: e.target.value})}
                     className={inputCls}>
-                    <option value="0">0% — No Tax</option>
-                    <option value="5">5% — Restaurant Services</option>
-                    <option value="12">12% — Packaged Food</option>
-                    <option value="18">18% — Standard GST</option>
-                    <option value="28">28% — Luxury Items</option>
+                    <option value="0">0% â€” No Tax</option>
+                    <option value="5">5% â€” Restaurant Services</option>
+                    <option value="12">12% â€” Packaged Food</option>
+                    <option value="18">18% â€” Standard GST</option>
+                    <option value="28">28% â€” Luxury Items</option>
                   </select>
                 </div>
                 <div>
@@ -255,40 +255,40 @@ export default function BusinessProfile({ onBack }) {
               </div>
               <div className="mt-3 p-3 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-400">
                 {businessData.taxInclusive ? (
-                  <>🏷️ <span className="text-amber-300 font-medium">Inclusive mode:</span> Item prices shown on menu already include {businessData.taxRate}% GST. Tax is extracted from the total at checkout.</>
+                  <>ðŸ·ï¸ <span className="text-amber-300 font-medium">Inclusive mode:</span> Item prices shown on menu already include {businessData.taxRate}% GST. Tax is extracted from the total at checkout.</>
                 ) : (
-                  <>🏷️ <span className="text-amber-300 font-medium">Exclusive mode:</span> {businessData.taxRate}% GST will be added on top of item prices at checkout.</>
+                  <>ðŸ·ï¸ <span className="text-amber-300 font-medium">Exclusive mode:</span> {businessData.taxRate}% GST will be added on top of item prices at checkout.</>
                 )}
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-400">
-              💡 Enter your GSTIN and FSSAI numbers here. These will automatically appear on all invoices, receipts, and thermal prints.
+              ðŸ’¡ Enter your GSTIN and FSSAI numbers here. These will automatically appear on all invoices, receipts, and thermal prints.
             </div>
           </div>
         )}
 
-        {/* ── Invoice Tab ── */}
+        {/* â”€â”€ Invoice Tab â”€â”€ */}
         {activeTab === 'invoice' && (
           <div className="space-y-5">
             {/* Logo Section */}
             <div className="p-4 rounded-lg bg-gray-800 border border-gray-700">
-              <h3 className="text-sm font-bold text-amber-400 mb-3">🖼️ Restaurant Logo</h3>
+              <h3 className="text-sm font-bold text-amber-400 mb-3">ðŸ–¼ï¸ Restaurant Logo</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* File Browser */}
                 <div>
-                  <label className={labelCls}>📂 Upload from PC</label>
+                  <label className={labelCls}>ðŸ“‚ Upload from PC</label>
                   <div className="mt-1 flex items-center gap-2">
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                     <button type="button" onClick={() => fileInputRef.current?.click()}
                       className="flex-1 px-3 py-2 bg-gray-700 rounded-lg text-sm text-gray-300 hover:bg-gray-600 border border-gray-600 transition text-left truncate">
-                      {businessData.logo && businessData.logo.startsWith('data:') ? '📷 Image loaded — click to change' : '📂 Browse image file...'}
+                      {businessData.logo && businessData.logo.startsWith('data:') ? 'ðŸ“· Image loaded â€” click to change' : 'ðŸ“‚ Browse image file...'}
                     </button>
                   </div>
                 </div>
                 {/* URL Input */}
                 <div>
-                  <label className={labelCls}>🔗 Image URL / Web Link</label>
+                  <label className={labelCls}>ðŸ”— Image URL / Web Link</label>
                   <input type="url" value={businessData.logoUrl || ''} onChange={(e) => handleLogoUrlChange(e.target.value)}
                     placeholder="https://example.com/logo.png" className={inputCls} />
                 </div>
@@ -312,7 +312,7 @@ export default function BusinessProfile({ onBack }) {
 
             {/* Invoice Settings */}
             <div>
-              <h3 className="text-sm font-bold text-amber-400 mb-3">🧾 Invoice Numbering</h3>
+              <h3 className="text-sm font-bold text-amber-400 mb-3">ðŸ§¾ Invoice Numbering</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Invoice Prefix</label>
@@ -330,7 +330,7 @@ export default function BusinessProfile({ onBack }) {
           </div>
         )}
 
-        {/* ── Bank Tab ── */}
+        {/* â”€â”€ Bank Tab â”€â”€ */}
         {activeTab === 'bank' && (
           <div className="space-y-4">
             <div>
@@ -357,9 +357,10 @@ export default function BusinessProfile({ onBack }) {
         {/* Save Button */}
         <button type="submit"
           className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold text-lg transition shadow-lg shadow-green-600/20">
-          💾 Save Business Profile
+          ðŸ’¾ Save Business Profile
         </button>
       </form>
     </div>
   );
 }
+

@@ -1,9 +1,5 @@
 {
 	"appId": "com.mehfil.nihari",
-	"appName": "Mehfil-E-Nihari",
 	"webDir": "dist",
-	"server": {
-		"url": "https://men.vercel.app",
-		"cleartext": true
-	}
+	"appName": "Mehfil-E-Nihari"
 }

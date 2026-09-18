@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { playButtonPress, playErrorSound, playCheckoutSuccess } from "../utils/audio";
 import { loadBusinessProfileSync, upsertCustomer } from "../utils/storage";
 
@@ -17,13 +17,13 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
     try { setProfile(loadBusinessProfileSync()); } catch (e) { console.error(e); }
   }, []);
 
-  const billId = String((bill?.invoiceNumber ?? bill?.id) ?? "\u2014");
+  const billId = String((bill?.invoiceNumber ?? bill?.id) ?? "—");
   const tableLabel = bill?.orderType === 'takeaway' || !bill?.tableNumber ? 'Parcel' : 'Table ' + bill.tableNumber;
   const billItems = bill?.items || [];
   const subtotal = bill?.subtotal || bill?.originalTotal || bill?.total || 0;
   const discountAmount = discountType === "percent" ? Math.round(subtotal * (discountValue / 100)) : Math.min(subtotal, discountValue);
   const finalTotal = Math.max(0, subtotal - discountAmount);
-  
+
   // Format date as DD/MM/YYYY
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -33,8 +33,9 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   };
-  
+
   const formattedDate = bill?.date ? formatDate(bill.date) : formatDate(new Date());
+  const logoUrl = profile.logoPath || profile.logo || '/logo.png';
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
@@ -49,14 +50,12 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
     if (window.bluetoothSerial) {
       setPrinting(true);
       var esc = "\x1B"; var LF = "\x0A";
-      // ── ESC/POS Logo (if logoPath exists) ─────────────
       var logoPath = profile.logoPath || profile.logo || '';
       var r = '';
-      // Print logo bitmap if available (JPEG/PNG as ESC/POS GS v 0)
       if (logoPath && logoPath.startsWith('data:')) {
         try {
-          r += esc + "\x61\x01" + LF; // center align
-          r += esc + "\x1F\x8B" + LF; // bit image mode placeholder
+          r += esc + "\x61\x01" + LF;
+          r += esc + "\x1F\x8B" + LF;
         } catch (e) { /* skip logo on error */ }
       }
       r += esc + "\x61\x01" + esc + "\x45\x01" + (profile.name || "MEHFIL-E-NIHARI") + esc + "\x45\x00" + LF;
@@ -86,7 +85,6 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
     } else {
       var w = window.open("", "_blank");
       if (!w) { alert("Pop-up blocked"); return; }
-      var logoUrl = profile.logoPath || profile.logo || '/logo.png';
       var html = '<html><head><title>Receipt</title><style>';
       html += 'body{font-family:monospace;font-size:14px;padding:20px;margin:0;}';
       html += 'h2{text-align:center;margin:4px 0;}';
@@ -95,20 +93,20 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
       html += '.center{text-align:center;}'
       html += '.row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;}'
       html += '.row-total{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:16px;font-weight:bold;border-top:2px solid #000;margin-top:4px;padding-top:6px;}'
-      html += '.row-right{display:flex;justify-content:flex-end;gap:12px;}'
       html += '</style></head><body>';
       if (logoUrl) html += '<div class="logo"><img src="' + logoUrl + '" alt="Logo" onerror="this.style.display=\'none\'" /></div>';
       html += '<h2>' + (profile.name || "MEHFIL-E-NIHARI") + '</h2>';
       html += '<p class="center" style="font-size:12px;">' + (profile.address || "") + '</p>';
       if (profile.city || profile.state) html += '<p class="center" style="font-size:11px;">' + (profile.city || '') + (profile.city && profile.state ? ', ' : '') + (profile.state || '') + '</p>';
-      html += '<p class="center">Phone: ' + (profile.phone || "") + ' | GSTIN: ' + (profile.gst || "") + '</p><hr>';      html += '<p>Bill #' + billId + ' | ' + tableLabel + ' | ' + (bill?.date || "") + ' ' + (bill?.time || "") + '</p><hr>';
+      html += '<p class="center">Phone: ' + (profile.phone || "") + ' | GSTIN: ' + (profile.gst || "") + '</p><hr>';
+      html += '<p>Bill #' + billId + ' | ' + tableLabel + ' | ' + (bill?.date || "") + ' ' + (bill?.time || "") + '</p><hr>';
       billItems.forEach(function(i) { html += '<div class="row"><span>' + i.name + ' (' + (i.portion || "Regular") + ') x' + i.qty + '</span><span>Rs.' + (i.price * i.qty) + '</span></div>'; });
       html += '<hr>';
       html += '<div class="row"><span>Subtotal</span><span>Rs.' + subtotal + '</span></div>';
       if (discountAmount > 0) html += '<div class="row" style="color:green;"><span>Discount</span><span>-Rs.' + discountAmount + '</span></div>';
       html += '<div class="row-total"><span>TOTAL</span><span>Rs.' + finalTotal + '</span></div><hr>';
       html += '<p class="center">Thank you! Visit us again</p>';
-      if (profile.fssai) html += '<p class="center" style="font-size:10px;">FSSAI: ' + profile.fssai + '</p>';
+      if (profile.fssai || profile.fssaiNumber) html += '<p class="center" style="font-size:10px;">FSSAI: ' + (profile.fssai || profile.fssaiNumber) + '</p>';
       html += '</body></html>';
       w.document.write(html); w.document.close();
       setTimeout(function() { w.print(); }, 500);
@@ -130,7 +128,7 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
       <div className="flex items-center justify-between mb-3 shrink-0">
         <button onClick={() => { playButtonPress(); onBackToOrder?.(); }}
           className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors btn-press px-3 py-1.5 rounded-xl hover:bg-white/10">
-          <span className="text-lg">{"\u2190"}</span><span className="font-semibold text-sm">Back to Order</span>
+          <span className="text-lg">←</span><span className="font-semibold text-sm">Back to Order</span>
         </button>
         <button onClick={() => { playButtonPress(); onNewBill?.(); }}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/20 text-green-400 font-bold text-sm btn-press hover:bg-green-500/40">
@@ -139,9 +137,13 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
       </div>
 
       <div className="text-center my-3 shrink-0">
-        <img src="/logo.png" alt="Logo" className="w-28 h-auto mx-auto object-contain mb-2 drop-shadow-lg" onError={function(e) { e.target.style.display='none'; }} />
-        <h2 className="text-2xl font-bold text-white">Order Successful!</h2>
-        <p className="text-amber-400 text-sm font-semibold">Payment: {paymentMethod?.toUpperCase() || 'N/A'}</p>
+        {logoUrl && <img src={logoUrl} alt="Logo" className="w-20 h-auto mx-auto object-contain mb-2 rounded-lg shadow" onError={function(e) { e.target.style.display='none'; }} />}
+        <h2 className="text-xl font-bold text-white">{profile.name || "MEHFIL-E-NIHARI"}</h2>
+        {profile.address && <p className="text-gray-300 text-xs mt-0.5 px-2">{profile.address}</p>}
+        <p className="text-gray-400 text-xs mt-1">
+          {profile.phone && `Phone: ${profile.phone}`} {profile.phone && profile.gst && `| `} {profile.gst && `GSTIN: ${profile.gst}`}
+        </p>
+        <p className="text-amber-400 text-sm font-semibold mt-2">Payment: {paymentMethod?.toUpperCase() || 'N/A'}</p>
       </div>
 
       <div className="bg-slate-800 rounded-2xl p-4 mb-3 space-y-2 border border-slate-700">
@@ -157,6 +159,11 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
         <div className="flex justify-between text-sm text-gray-300"><span>Subtotal</span><span className="font-semibold">Rs.{subtotal}</span></div>
         {discountAmount > 0 && <div className="flex justify-between text-sm text-green-400"><span>Discount</span><span className="font-semibold">-Rs.{discountAmount}</span></div>}
         <div className="flex justify-between text-lg font-bold pt-2 border-t border-slate-700"><span>Total</span><span className="text-amber-400 text-right">Rs.{finalTotal}</span></div>
+        {(profile.fssai || profile.fssaiNumber) && (
+          <div className="text-center pt-2 border-t border-slate-700 text-gray-400 text-xs">
+            FSSAI: {profile.fssai || profile.fssaiNumber}
+          </div>
+        )}
       </div>
 
       {toast && <div className="mb-3 p-3 rounded-xl bg-emerald-500/20 text-emerald-400 text-center font-bold text-sm animate-slide-up">{toast}</div>}
@@ -164,7 +171,7 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
       <div className="mb-3 shrink-0">
         {!showDiscount ? (
           <button onClick={() => { playButtonPress(); setShowDiscount(true); }}
-            className="w-full py-3 rounded-xl bg-slate-700/50 border border-slate-600 text-gray-300 font-bold text-sm btn-press hover:bg-slate-600/50">{"\uD83D\uDCB0"} Apply Discount</button>
+            className="w-full py-3 rounded-xl bg-slate-700/50 border border-slate-600 text-gray-300 font-bold text-sm btn-press hover:bg-slate-600/50">💰 Apply Discount</button>
         ) : (
           <div className="bg-slate-800 rounded-xl p-4 border border-amber-500/30 space-y-2 animate-slide-up">
             <div className="flex items-center justify-between mb-2">
@@ -173,7 +180,7 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
             </div>
             <div className="flex gap-2">
               <button onClick={() => setDiscountType("percent")} className={"flex-1 py-2 rounded-lg text-xs font-bold " + (discountType === "percent" ? "bg-amber-500 text-white" : "bg-slate-700 text-gray-400")}>% Percent</button>
-              <button onClick={() => setDiscountType("flat")} className={"flex-1 py-2 rounded-lg text-xs font-bold " + (discountType === "flat" ? "bg-amber-500 text-white" : "bg-slate-700 text-gray-400")}>{"\u20B9"} Flat</button>
+              <button onClick={() => setDiscountType("flat")} className={"flex-1 py-2 rounded-lg text-xs font-bold " + (discountType === "flat" ? "bg-amber-500 text-white" : "bg-slate-700 text-gray-400")}>₹ Flat</button>
             </div>
             <input type="number" value={discountValue || ""} onChange={function(e) { setDiscountValue(Number(e.target.value)); }}
               placeholder={discountType === "percent" ? "Enter % (e.g. 10)" : "Enter amount"}
@@ -186,7 +193,7 @@ export default function SuccessScreen({ bill, paymentMethod, onNewBill, onBackTo
       <div className="mb-3 shrink-0">
         {!showCustomer ? (
           <button onClick={() => { playButtonPress(); setShowCustomer(true); }}
-            className="w-full py-3 rounded-xl bg-slate-700/50 border border-slate-600 text-gray-300 font-bold text-sm btn-press hover:bg-slate-600/50">{"\uD83D\uDC64"} + Add Customer Phone</button>
+            className="w-full py-3 rounded-xl bg-slate-700/50 border border-slate-600 text-gray-300 font-bold text-sm btn-press hover:bg-slate-600/50">👤 + Add Customer Phone</button>
         ) : (
           <div className="bg-slate-800 rounded-xl p-4 border border-blue-500/30 space-y-2 animate-slide-up">
             <div className="flex items-center justify-between mb-2">

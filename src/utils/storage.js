@@ -1,174 +1,137 @@
-﻿// Universal Storage Utility (localStorage + IndexedDB + Cloud Sync)
-
-// ── Hardcoded Restaurant Defaults ──────────────────────────
-export const RESTAURANT_DEFAULTS = {
-  name: 'MEHFIL-E-NIHARI',
-  restaurantName: 'Mehfil-E-Nihari',
-  address: '12A/107, Main Road, Opp metro Pillar No 196, Maujpur, Delhi - 110053',
-  city: 'Delhi',
-  state: 'Delhi',
-  phone: '+91 9990515151',
-  email: '',
-  gst: '07ABXFM3984H1ZG',
-  gstin: '07ABXFM3984H1ZG',
-  fssai: '23323004001056',
-  logoPath: '/logo.png',
-};
-
-// ── Synchronous business profile (no async, no remote fetch) ──
-export function loadBusinessProfileSync() {
-  try {
-    const raw = localStorage.getItem('business_profile');
-    const saved = raw ? JSON.parse(raw) : {};
-    return {
-      ...RESTAURANT_DEFAULTS,
-      ...saved,
-      name: saved.restaurantName || saved.name || RESTAURANT_DEFAULTS.name,
-      gst: saved.gstin || saved.gst || RESTAURANT_DEFAULTS.gst,
-    };
-  } catch {
-    return { ...RESTAURANT_DEFAULTS };
-  }
-}
-
-export async function getSetting(key) {
-  // business_profile: local-first, no remote fetch
-  if (key === 'business_profile') {
-    return loadBusinessProfileSync();
-  }
-  const val = localStorage.getItem(key);
-  return val ? JSON.parse(val) : null;
-}
-
-export async function setSetting(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
+import { db, getNextInvoiceNumber } from "./cloud";
+import { collection, doc, getDoc, setDoc, getDocs, deleteDoc } from "firebase/firestore";
 
 export async function getItem(storeName, id) {
-  const all = await getAll(storeName);
-  return all.find(item => String(item.id) === String(id)) || null;
+  try {
+    const docRef = doc(db, storeName, String(id));
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+  } catch (e) {
+    console.error("getItem error:", e);
+    return null;
+  }
 }
 
 export async function setItem(storeName, id, data) {
-  const all = await getAll(storeName);
-  const index = all.findIndex(item => String(item.id) === String(id));
-  const newItem = { ...data, id };
-  if (index >= 0) {
-    all[index] = newItem;
-  } else {
-    all.push(newItem);
+  try {
+    const docId = String(id || Date.now());
+    const docRef = doc(db, storeName, docId);
+    const cleanData = { ...data, id: docId };
+    await setDoc(docRef, cleanData, { merge: true });
+    return docId;
+  } catch (e) {
+    console.error("setItem error:", e);
+    return id;
   }
-  localStorage.setItem(storeName, JSON.stringify(all));
-  return typeof newItem.id === 'object' ? (newItem.id.id || Date.now().toString()) : (newItem.id || Date.now().toString());
-}
-
-export async function getAll(storeName) {
-  const raw = localStorage.getItem(storeName);
-  return raw ? JSON.parse(raw) : [];
 }
 
 export async function deleteItem(storeName, id) {
-  let all = await getAll(storeName);
-  all = all.filter(item => String(item.id) !== String(id));
-  localStorage.setItem(storeName, JSON.stringify(all));
-  return true;
+  try {
+    const docRef = doc(db, storeName, String(id));
+    await deleteDoc(docRef);
+    return true;
+  } catch (e) {
+    console.error("deleteItem error:", e);
+    return false;
+  }
 }
 
-// Compatibility exports
+export async function getAll(storeName) {
+  try {
+    const querySnapshot = await getDocs(collection(db, storeName));
+    const items = [];
+    querySnapshot.forEach((doc) => {
+      items.push({ id: doc.id, ...doc.data() });
+    });
+    return items;
+  } catch (e) {
+    console.error("getAll error:", e);
+    return [];
+  }
+}
+
+// Business Profile Sync with Firestore
+export async function loadBusinessProfile() {
+  try {
+    const docRef = doc(db, "settings", "business_profile");
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() : {};
+  } catch (e) {
+    console.error("Load business profile error:", e);
+    return {};
+  }
+}
+
+export function loadBusinessProfileSync() {
+  try {
+    const raw = localStorage.getItem("businessProfile");
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+export async function saveBusinessProfile(profile) {
+  try {
+    const docRef = doc(db, "settings", "business_profile");
+    await setDoc(docRef, profile, { merge: true });
+    localStorage.setItem("businessProfile", JSON.stringify(profile));
+    return true;
+  } catch (e) {
+    console.error("Save business profile error:", e);
+    return false;
+  }
+}
+
 export async function getMenuItems() {
-  return await getAll("items");
+  return await getAll("menuItems");
 }
 
 export async function saveMenuItems(items) {
-  localStorage.setItem("items", JSON.stringify(items));
-  return true;
-}
-
-export async function saveBill(bill) {
-  return await setItem("bills", bill.id || Date.now(), bill);
-}
-
-export async function loadBusinessProfile() {
-  return loadBusinessProfileSync();
-}
-
-// ── Customer Database ──────────────────────────────────────
-export async function getCustomers() {
-  return await getAll('customers');
-}
-
-export async function saveCustomers(customers) {
-  localStorage.setItem('customers', JSON.stringify(customers));
-  return true;
-}
-
-export async function upsertCustomer(phone, data) {
-  const all = await getCustomers();
-  const idx = all.findIndex(c => c.phone === phone);
-  if (idx >= 0) {
-    all[idx] = { ...all[idx], ...data, lastVisit: new Date().toISOString() };
-  } else {
-    all.push({ phone, ...data, visits: 1, totalSpend: 0, loyaltyPoints: 0, lastVisit: new Date().toISOString(), createdAt: new Date().toISOString() });
+  try {
+    for (const item of items) {
+      const itemId = item.id || Date.now();
+      await setItem("menuItems", itemId, item);
+    }
+    return true;
+  } catch (e) {
+    console.error("Save menu items error:", e);
+    return false;
   }
-  await saveCustomers(all);
-  return all[idx >= 0 ? idx : all.length - 1];
 }
 
-// ── D-Drive Snapshot & Backup ──────────────────────────────
-export async function generateBackupSnapshot() {
-  const data = {
-    bills: await getAll('bills'),
-    items: await getAll('items'),
-    customers: await getAll('customers'),
-    staff: await getAll('staff'),
-    inventory: await getAll('inventory'),
-    vendors: await getAll('vendors'),
-    expenses: await getAll('expenses'),
-    purchases: await getAll('purchases'),
-    businessProfile: loadBusinessProfileSync(),
-    auditLog: await getAll('audit_log'),
-    generatedAt: new Date().toISOString(),
+export async function upsertCustomer(customer) {
+  try {
+    const custId = customer.id || customer.phone || Date.now();
+    await setItem("customers", custId, customer);
+    return customer;
+  } catch (e) {
+    console.error("Upsert customer error:", e);
+    return null;
+  }
+}
+
+// Bill Management with atomic cloud sequencing
+export async function saveBill(bill) {
+  let billId = bill.id;
+  if (!billId) {
+    try {
+      billId = await getNextInvoiceNumber();
+    } catch (error) {
+      billId = Date.now();
+    }
+  }
+  const billWithId = {
+    ...bill,
+    id: billId,
+    date: bill.date || new Date().toISOString()
   };
-  return data;
-}
-
-export function downloadBackupJSON(data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Mehfil-Backup-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export function downloadBackupCSV(data, type) {
-  if (!data || data.length === 0) return;
-  const headers = Object.keys(data[0]);
-  const rows = data.map(row => headers.map(h => JSON.stringify(row[h] ?? '')).join(','));
-  const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Mehfil-${type}-${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export async function getTodayBills() {
-  const all = await getAll("bills");
-  const today = new Date().toISOString().split("T")[0];
-  return all.filter(b => b.date === today || (b.createdAt && b.createdAt.startsWith(today)));
+  await setItem("bills", billId, billWithId);
+  return billId;
 }
 
 export async function getAllBills() {
   return await getAll("bills");
-}
-
-export async function clearAllData() {
-  localStorage.clear();
-  return true;
 }
 
 export async function getBillById(id) {
@@ -177,4 +140,46 @@ export async function getBillById(id) {
 
 export async function updateBill(id, data) {
   return await setItem("bills", id, data);
+}
+
+export async function getTodayBills() {
+  try {
+    const bills = await getAllBills();
+    const todayStr = new Date().toISOString().split("T")[0];
+    return bills.filter(b => {
+      const bDate = b.date ? String(b.date).split("T")[0] : "";
+      return bDate === todayStr;
+    });
+  } catch (e) {
+    return await getAllBills();
+  }
+}
+
+export async function getSetting(key, defaultValue = null) {
+  try {
+    const docRef = doc(db, "appSettings", String(key));
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data().value : defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+}
+
+export async function setSetting(key, value) {
+  try {
+    const docRef = doc(db, "appSettings", String(key));
+    await setDoc(docRef, { key, value }, { merge: true });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function clearAllData() {
+  try {
+    localStorage.clear();
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
