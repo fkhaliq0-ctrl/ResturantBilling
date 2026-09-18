@@ -28,3 +28,6 @@ release/
 *.zip
 .vercel
 .env*
+
+*.apk
+android/app/build/
