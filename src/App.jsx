@@ -34,6 +34,7 @@ import RolePermissions from './components/RolePermissions';
 import SendAPK from './components/SendAPK';
 import { CATEGORIES, DEFAULT_ITEMS } from './utils/menuData';
 import { saveMenuItems, getMenuItems, saveBill } from './utils/storage';
+import { normalizeMenuItems } from './utils/normalizeMenuItem';
 import { playButtonPress, playCheckoutSuccess } from './utils/audio';
 import { logEdit, snapshotBill } from './utils/auditLog';
 import { getNextInvoiceNumber } from './utils/cloud';
@@ -87,7 +88,7 @@ export default function App() {
         });
         if (needsUpdate) await saveMenuItems(items);
       }
-      setMenuItems(items);
+      setMenuItems(normalizeMenuItems(items));
     };
     initMenu();
   }, []);

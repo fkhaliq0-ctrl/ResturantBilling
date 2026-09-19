@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { playButtonPress, playCheckoutSuccess, playErrorSound } from '../utils/audio';
 import { saveMenuItems, getMenuItems } from '../utils/storage';
+import { normalizeMenuItems } from '../utils/normalizeMenuItem';
 import { CATEGORIES, DEFAULT_ITEMS } from '../utils/menuData';
 
 const HI_MAP = {
@@ -59,6 +60,8 @@ export default function MenuMaster({ onBack }) {
     if (!items || items.length === 0) {
       await saveMenuItems(DEFAULT_ITEMS);
       items = DEFAULT_ITEMS;
+    } else {
+      items = normalizeMenuItems(items);
     }
     setMenuItems(items);
   };
