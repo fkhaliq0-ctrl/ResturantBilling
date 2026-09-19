@@ -6,6 +6,7 @@ export default function ItemGrid({ items, onAdd, onBack, categories }) {
   const [portionModal, setPortionModal] = useState(null);
   const [sortBy, setSortBy] = useState('default');
   const [filterCat, setFilterCat] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // ── Flat mode: categories prop present = show all items ──
   const flatMode = !!categories;
@@ -60,6 +61,15 @@ export default function ItemGrid({ items, onAdd, onBack, categories }) {
   // ── Sort & filter items ─────────────────────────────────
   const sortedItems = [...items]
     .filter(i => filterCat === 'all' || i.category === filterCat)
+    .filter(i => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        (i.name && i.name.toLowerCase().includes(q)) ||
+        (i.hi && i.hi.toLowerCase().includes(q)) ||
+        (i.ur && i.ur.includes(q))
+      );
+    })
     .sort((a, b) => {
       if (sortBy === 'low-high') return getStartingPrice(a) - getStartingPrice(b);
       if (sortBy === 'high-low') return getStartingPrice(b) - getStartingPrice(a);
@@ -180,6 +190,15 @@ export default function ItemGrid({ items, onAdd, onBack, categories }) {
           <span className="text-2xl">←</span>
           <span className="font-semibold">Back</span>
         </button>
+
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="🔍 Search..."
+          className="bg-slate-700 border border-slate-600 rounded-xl px-3 py-1.5 text-white text-xs
+            focus:outline-none focus:border-amber-400 shrink-0 w-28 sm:w-36"
+        />
 
         {flatMode && (
           <select

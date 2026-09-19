@@ -49,7 +49,7 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [lastBill, setLastBill] = useState(null);
   const [lastPayment, setLastPayment] = useState(null);
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState(() => normalizeMenuItems(DEFAULT_ITEMS));
 
   // ── Order type & table state ──────────────────────────────
   const [orderType, setOrderType] = useState(null); // 'dine-in' | 'takeaway'
@@ -67,28 +67,35 @@ export default function App() {
     });
   }, []);
 
-  // Initialize menu items + migrate image URLs from DEFAULT_ITEMS
+  // Initialize menu items from Firestore, falling back to DEFAULT_ITEMS
   useEffect(() => {
     const initMenu = async () => {
-      let items = await getMenuItems();
-      if (!items || items.length === 0) {
-        await saveMenuItems(DEFAULT_ITEMS);
-        items = DEFAULT_ITEMS;
-      } else {
-        // Always refresh image URLs from DEFAULT_ITEMS (fixes broken URLs)
-        const defaultMap = Object.fromEntries(DEFAULT_ITEMS.map(d => [d.id, d]));
-        let needsUpdate = false;
-        items = items.map(item => {
-          const def = defaultMap[item.id];
-          if (def?.image && item.image !== def.image) {
-            needsUpdate = true;
-            return { ...item, image: def.image };
-          }
-          return item;
-        });
-        if (needsUpdate) await saveMenuItems(items);
+      try {
+        let items = await getMenuItems();
+        if (!items || items.length === 0) {
+          // Firestore empty or unavailable — use built-in defaults
+          items = DEFAULT_ITEMS;
+          // Try to persist defaults for next time (best-effort)
+          saveMenuItems(DEFAULT_ITEMS).catch(() => {});
+        } else {
+          // Merge fresh image URLs from DEFAULT_ITEMS (fixes broken URLs)
+          const defaultMap = Object.fromEntries(DEFAULT_ITEMS.map(d => [d.id, d]));
+          let needsUpdate = false;
+          items = items.map(item => {
+            const def = defaultMap[item.id];
+            if (def?.image && item.image !== def.image) {
+              needsUpdate = true;
+              return { ...item, image: def.image };
+            }
+            return item;
+          });
+          if (needsUpdate) saveMenuItems(items).catch(() => {});
+        }
+        setMenuItems(normalizeMenuItems(items));
+      } catch (err) {
+        console.warn('[Menu] Failed to load from Firestore, using defaults:', err?.message);
+        setMenuItems(normalizeMenuItems(DEFAULT_ITEMS));
       }
-      setMenuItems(normalizeMenuItems(items));
     };
     initMenu();
   }, []);
